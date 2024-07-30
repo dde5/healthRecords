@@ -1,0 +1,733 @@
+<html><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>健康記錄追蹤器</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f8ff;
+  }
+  .container {
+    max-width: 800px;
+    margin: 80px auto 20px;
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+  h1, h2 {
+    color: #3498db;
+    text-align: center;
+  }
+  nav {
+    background-color: #3498db;
+    padding: 10px 0;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+  }
+  nav ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+  }
+  nav ul li {
+    margin: 0 10px;
+  }
+  nav ul li a {
+    color: white;
+    text-decoration: none;
+    padding: 5px 10px;
+  }
+  nav ul li a:hover {
+    background-color: #2980b9;
+  }
+  form {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  label {
+    font-weight: bold;
+  }
+  input[type="number"], input[type="text"], input[type="datetime-local"], input[type="password"], select {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  button:hover {
+    background-color: #2980b9;
+  }
+  .chart-controls, .tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+  .chart-controls button, .tab {
+    margin: 0 5px;
+    padding: 5px 10px;
+    background-color: #f0f0f0;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  .chart-controls button:hover, .tab:hover, .tab.active {
+    background-color: #3498db;
+    color: white;
+  }
+  .chart-wrapper {
+    display: none;
+  }
+  .chart-wrapper.active {
+    display: block;
+  }
+  #meal-info {
+    display: none;
+  }
+  #photo-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+  #photo-buttons button {
+    flex: 1;
+    margin: 0 5px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+  th {
+    background-color: #f2f2f2;
+  }
+  tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+  .edit-controls {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .edit-controls select, .edit-controls input[type="date"] {
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  #loginForm, #registerForm {
+    max-width: 300px;
+    margin: 0 auto;
+  }
+</style>
+</head>
+<body>
+  <nav>
+    <ul>
+      <li><a href="#" onclick="showSection('record')">記錄</a></li>
+      <li><a href="#" onclick="showSection('chart')">圖表</a></li>
+      <li><a href="#" onclick="showSection('edit')">修改記錄</a></li>
+      <li><a href="#" onclick="showSection('import')">匯入記錄</a></li>
+      <li><a href="#" onclick="exportToGoogleSheets()">下載記錄</a></li>
+      <li><a href="#" id="loginLogout" onclick="toggleLoginLogout()">登入</a></li>
+      <li>
+        <select id="language" onchange="changeLanguage()">
+          <option value="zh-TW" selected>繁體中文</option>
+          <option value="en">English</option>
+          <option value="zh-CN">简体中文</option>
+          <option value="ja">日本語</option>
+          <option value="ko">한국어</option>
+        </select>
+      </li>
+    </ul>
+  </nav>
+
+  <div class="container" id="loginSection">
+    <h2>登入</h2>
+    <form id="loginForm">
+      <input type="text" id="loginUsername" placeholder="用戶名" required>
+      <input type="password" id="loginPassword" placeholder="密碼" required>
+      <button type="submit">登入</button>
+    </form>
+    <p>還沒有帳號？ <a href="#" onclick="showSection('register')">註冊</a></p>
+  </div>
+
+  <div class="container" id="registerSection" style="display:none;">
+    <h2>註冊</h2>
+    <form id="registerForm">
+      <input type="text" id="registerUsername" placeholder="用戶名" required>
+      <input type="password" id="registerPassword" placeholder="密碼" required>
+      <input type="password" id="confirmPassword" placeholder="確認密碼" required>
+      <button type="submit">註冊</button>
+    </form>
+    <p>已有帳號？ <a href="#" onclick="showSection('login')">登入</a></p>
+  </div>
+
+  <div class="container" id="record-section" style="display:none;">
+    <h1>健康記錄追蹤器</h1>
+    <form id="healthForm">
+      <label for="recordDate">記錄時間:</label>
+      <input type="datetime-local" id="recordDate" required>
+
+      <label for="glucose">血糖 (mg/dL):</label>
+      <div>
+        <select id="glucoseType">
+          <option value="fasting">空腹血糖</option>
+          <option value="postprandial">餐後血糖</option>
+        </select>
+        <input type="number" id="glucose">
+      </div>
+      
+      <div id="meal-info">
+        <label for="meal">餐點描述:</label>
+        <input type="text" id="meal">
+        <div id="photo-buttons">
+          <button type="button" onclick="uploadPhoto()">上傳照片</button>
+          <button type="button" onclick="takePhoto()">拍攝照片</button>
+        </div>
+        <input type="file" id="photo-upload" style="display: none;" accept="image/*">
+      </div>
+      
+      <label for="systolic">血壓 - 收縮壓 (mmHg):</label>
+      <input type="number" id="systolic">
+      
+      <label for="diastolic">血壓 - 舒張壓 (mmHg):</label>
+      <input type="number" id="diastolic">
+      
+      <label for="heartRate">心率 (bpm):</label>
+      <input type="number" id="heartRate">
+      
+      <label for="weight">體重 (kg):</label>
+      <input type="number" id="weight" step="0.1">
+      
+      <button type="submit">添加記錄</button>
+    </form>
+  </div>
+
+  <div class="container" id="chart-section" style="display:none;">
+    <h2>健康記錄圖表</h2>
+    <div class="tabs">
+      <button class="tab active" onclick="changeTab('all')">所有指標</button>
+      <button class="tab" onclick="changeTab('glucose')">血糖</button>
+      <button class="tab" onclick="changeTab('bp-hr')">血壓和心率</button>
+      <button class="tab" onclick="changeTab('weight')">體重</button>
+    </div>
+
+    <div class="chart-controls">
+      <button onclick="changeChartPeriod('week')">1 週</button>
+      <button onclick="changeChartPeriod('month')">1 個月</button>
+      <button onclick="changeChartPeriod('threeMonths')">3 個月</button>
+      <button onclick="changeChartPeriod('halfYear')">半年</button>
+      <button onclick="changeChartPeriod('year')">1 年</button>
+      <button onclick="changeChartPeriod('all')">全部</button>
+    </div>
+
+    <div id="chartContainer">
+      <div class="chart-wrapper active" id="allMetrics">
+        <canvas id="allChart"></canvas>
+      </div>
+      <div class="chart-wrapper" id="glucoseMetric">
+        <canvas id="glucoseChart"></canvas>
+      </div>
+      <div class="chart-wrapper" id="bpHrMetric">
+        <canvas id="bpHrChart"></canvas>
+      </div>
+      <div class="chart-wrapper" id="weightMetric">
+        <canvas id="weightChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="container" id="edit-section" style="display:none;">
+    <h2>修改記錄</h2>
+    <div class="edit-controls">
+      <select id="recordPeriod" onchange="changeRecordPeriod()">
+        <option value="1">1 天</option>
+        <option value="7">7 天</option>
+        <option value="30">30 天</option>
+        <option value="custom">指定日期</option>
+      </select>
+      <input type="date" id="customDate" style="display:none;" onchange="changeRecordPeriod()">
+    </div>
+    <table id="recordsTable">
+      <thead>
+        <tr>
+          <th>記錄時間</th>
+          <th>空腹血糖</th>
+          <th>餐後血糖</th>
+          <th>血壓-收縮壓</th>
+          <th>血壓-舒張壓</th>
+          <th>心跳</th>
+          <th>體重</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Records will be inserted here dynamically -->
+      </tbody>
+    </table>
+  </div>
+
+  <div class="container" id="import-section" style="display:none;">
+    <h2>匯入記錄</h2>
+    <input type="file" id="importFile" accept=".xlsx,.xls,.csv">
+    <button onclick="importRecords()">匯入</button>
+  </div>
+
+  <script>
+    let healthData = [];
+    let charts = {};
+    let currentPeriod = 'week';
+    let currentTab = 'all';
+    let currentLanguage = 'zh-TW';
+    let currentRecordPeriod = '1';
+    let currentUser = null;
+
+    // Set default time to now when the page loads
+    function setDefaultDateTime() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const defaultDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+      document.getElementById('recordDate').value = defaultDateTime;
+    }
+
+    // Call this function when the page loads
+    window.onload = function() {
+      setDefaultDateTime();
+      checkLoginStatus();
+    };
+
+    document.getElementById('healthForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (!currentUser) {
+        alert('請先登入');
+        return;
+      }
+      const newRecord = {
+        date: document.getElementById('recordDate').value,
+        glucoseType: document.getElementById('glucoseType').value,
+        glucose: document.getElementById('glucose').value ? parseFloat(document.getElementById('glucose').value) : null,
+        meal: document.getElementById('meal').value,
+        systolic: document.getElementById('systolic').value ? parseFloat(document.getElementById('systolic').value) : null,
+        diastolic: document.getElementById('diastolic').value ? parseFloat(document.getElementById('diastolic').value) : null,
+        heartRate: document.getElementById('heartRate').value ? parseFloat(document.getElementById('heartRate').value) : null,
+        weight: document.getElementById('weight').value ? parseFloat(document.getElementById('weight').value) : null
+      };
+      healthData.push(newRecord);
+      saveHealthData();
+      updateCharts(currentPeriod);
+      this.reset();
+      setDefaultDateTime(); // Reset the date to current time after submission
+      alert('記錄已添加');
+    });
+
+    document.getElementById('glucoseType').addEventListener('change', function() {
+      document.getElementById('meal-info').style.display = 
+        this.value === 'postprandial' ? 'block' : 'none';
+    });
+
+    function uploadPhoto() {
+      document.getElementById('photo-upload').click();
+    }
+
+    function takePhoto() {
+      alert('相機功能尚未實現');
+    }
+
+    function showSection(section) {
+      if (!currentUser && section !== 'login' && section !== 'register') {
+        alert('請先登入');
+        showSection('login');
+        return;
+      }
+      document.getElementById('loginSection').style.display = section === 'login' ? 'block' : 'none';
+      document.getElementById('registerSection').style.display = section === 'register' ? 'block' : 'none';
+      document.getElementById('record-section').style.display = section === 'record' ? 'block' : 'none';
+      document.getElementById('chart-section').style.display = section === 'chart' ? 'block' : 'none';
+      document.getElementById('edit-section').style.display = section === 'edit' ? 'block' : 'none';
+      document.getElementById('import-section').style.display = section === 'import' ? 'block' : 'none';
+      if (section === 'chart') {
+        updateCharts(currentPeriod);
+      } else if (section === 'edit') {
+        displayRecordsForEdit();
+      }
+    }
+
+    function changeLanguage() {
+      currentLanguage = document.getElementById('language').value;
+      alert('語言切換功能尚未實現');
+    }
+
+    function changeTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.tab:nth-child(${['all', 'glucose', 'bp-hr', 'weight'].indexOf(tab) + 1})`).classList.add('active');
+      document.querySelectorAll('.chart-wrapper').forEach(w => w.classList.remove('active'));
+      document.getElementById({
+        'all': 'allMetrics',
+        'glucose': 'glucoseMetric',
+        'bp-hr': 'bpHrMetric',
+        'weight': 'weightMetric'
+      }[tab]).classList.add('active');
+      updateCharts(currentPeriod);
+    }
+
+    function changeChartPeriod(period) {
+      currentPeriod = period;
+      updateCharts(period);
+    }
+
+    function updateCharts(period) {
+      const filteredData = filterDataByPeriod(healthData, period);
+      
+      updateAllMetricsChart(filteredData);
+      updateGlucoseChart(filteredData);
+      updateBpHrChart(filteredData);
+      updateWeightChart(filteredData);
+    }
+
+    function updateAllMetricsChart(data) {
+      const datasets = [
+        { label: '血糖', data: data.map(d => ({x: d.date, y: d.glucose})), borderColor: 'rgb(255, 99, 132)', yAxisID: 'y' },
+        { label: '收縮壓', data: data.map(d => ({x: d.date, y: d.systolic})), borderColor: 'rgb(54, 162, 235)', yAxisID: 'y1' },
+        { label: '舒張壓', data: data.map(d => ({x: d.date, y: d.diastolic})), borderColor: 'rgb(75, 192, 192)', yAxisID: 'y1' },
+        { label: '心率', data: data.map(d => ({x: d.date, y: d.heartRate})), borderColor: 'rgb(255, 159, 64)', yAxisID: 'y2' },
+        { label: '體重', data: data.map(d => ({x: d.date, y: d.weight})), borderColor: 'rgb(153, 102, 255)', yAxisID: 'y3' }
+      ];
+
+      updateChart('allChart', datasets, {
+        y: { title: '血糖 (mg/dL)' },
+        y1: { title: '血壓 (mmHg)' },
+        y2: { title: '心率 (bpm)' },
+        y3: { title: '體重 (kg)' }
+      });
+    }
+
+    function updateGlucoseChart(data) {
+      const datasets = [
+        { label: '血糖', data: data.map(d => ({x: d.date, y: d.glucose})), borderColor: 'rgb(255, 99, 132)' }
+      ];
+      updateChart('glucoseChart', datasets, { y: { title: '血糖 (mg/dL)' } });
+    }
+
+    function updateBpHrChart(data) {
+      const datasets = [
+        { label: '收縮壓', data: data.map(d => ({x: d.date, y: d.systolic})), borderColor: 'rgb(54, 162, 235)', yAxisID: 'y' },
+        { label: '舒張壓', data: data.map(d => ({x: d.date, y: d.diastolic})), borderColor: 'rgb(75, 192, 192)', yAxisID: 'y' },
+        { label: '心率', data: data.map(d => ({x: d.date, y: d.heartRate})), borderColor: 'rgb(255, 159, 64)', yAxisID: 'y1' }
+      ];
+      updateChart('bpHrChart', datasets, {
+        y: { title: '血壓 (mmHg)' },
+        y1: { title: '心率 (bpm)' }
+      });
+    }
+
+    function updateWeightChart(data) {
+      const datasets = [
+        { label: '體重', data: data.map(d => ({x: d.date, y: d.weight})), borderColor: 'rgb(153, 102, 255)' }
+      ];
+      updateChart('weightChart', datasets, { y: { title: '體重 (kg)' } });
+    }
+
+    function updateChart(chartId, datasets, scales) {
+      const ctx = document.getElementById(chartId).getContext('2d');
+      
+      if (charts[chartId]) {
+        charts[chartId].destroy();
+      }
+
+      charts[chartId] = new Chart(ctx, {
+        type: 'line',
+        data: { datasets: datasets },
+        options: {
+          responsive: true,
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                unit: 'day',
+                displayFormats: {
+                  day: 'yyyy/MM/dd HH:mm'
+                }
+              },
+              title: {
+                display: true,
+                text: '日期時間'
+              }
+            },
+            ...Object.fromEntries(Object.entries(scales).map(([key, value]) => [
+              key,
+              {
+                type: 'linear',
+                display: true,
+                position: key === 'y' ? 'left' : 'right',
+                title: {
+                  display: true,
+                  text: value.title
+                },
+                grid: {
+                  drawOnChartArea: key === 'y',
+                },
+              }
+            ]))
+          }
+        }
+      });
+    }
+
+    function filterDataByPeriod(data, period) {
+      const now = new Date();
+      let startDate;
+
+      switch(period) {
+        case 'week':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case 'month':
+          startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+          break;
+        case 'threeMonths':
+          startDate = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+          break;
+        case 'halfYear':
+          startDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+          break;
+        case 'year':
+          startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+          break;
+        default:
+          return data;
+      }
+
+      return data.filter(record => new Date(record.date) >= startDate);
+    }
+
+    function changeRecordPeriod() {
+      currentRecordPeriod = document.getElementById('recordPeriod').value;
+      if (currentRecordPeriod === 'custom') {
+        document.getElementById('customDate').style.display = 'inline-block';
+      } else {
+        document.getElementById('customDate').style.display = 'none';
+      }
+      displayRecordsForEdit();
+    }
+
+    function displayRecordsForEdit() {
+      const tbody = document.querySelector('#recordsTable tbody');
+      tbody.innerHTML = '';
+
+      let filteredData = [...healthData];
+      const now = new Date();
+
+      if (currentRecordPeriod !== 'custom') {
+        const days = parseInt(currentRecordPeriod);
+        const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+        filteredData = filteredData.filter(record => new Date(record.date) >= startDate);
+      } else {
+        const customDate = new Date(document.getElementById('customDate').value);
+        customDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(customDate.getTime() + 24 * 60 * 60 * 1000);
+        filteredData = filteredData.filter(record => {
+          const recordDate = new Date(record.date);
+          return recordDate >= customDate && recordDate < endDate;
+        });
+      }
+
+      filteredData.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      filteredData.forEach((record, index) => {
+        const row = tbody.insertRow();
+        row.innerHTML = `
+          <td><input type="datetime-local" value="${record.date}" data-index="${index}" data-field="date"></td>
+          <td><input type="number" value="${record.glucoseType === 'fasting' ? record.glucose : ''}" data-index="${index}" data-field="fasting"></td>
+          <td><input type="number" value="${record.glucoseType === 'postprandial' ? record.glucose : ''}" data-index="${index}" data-field="postprandial"></td>
+          <td><input type="number" value="${record.systolic || ''}" data-index="${index}" data-field="systolic"></td>
+          <td><input type="number" value="${record.diastolic || ''}" data-index="${index}" data-field="diastolic"></td>
+          <td><input type="number" value="${record.heartRate || ''}" data-index="${index}" data-field="heartRate"></td>
+          <td><input type="number" value="${record.weight || ''}" step="0.1" data-index="${index}" data-field="weight"></td>
+          <td>
+            <button onclick="saveRecord(${index})">保存</button>
+            <button onclick="deleteRecord(${index})">刪除</button>
+          </td>
+        `;
+      });
+    }
+
+    function saveRecord(index) {
+      const inputs = document.querySelectorAll(`input[data-index="${index}"]`);
+      const updatedRecord = {};
+      inputs.forEach(input => {
+        const field = input.dataset.field;
+        const value = input.value;
+        if (field === 'date') {
+          updatedRecord.date = value;
+        } else if (field === 'fasting' || field === 'postprandial') {
+          if (value) {
+            updatedRecord.glucoseType = field;
+            updatedRecord.glucose = parseFloat(value);
+          }
+        } else {
+          updatedRecord[field] = value ? parseFloat(value) : null;
+        }
+      });
+      healthData[index] = {...healthData[index], ...updatedRecord};
+      saveHealthData();
+      alert('記錄已更新');
+      displayRecordsForEdit();
+    }
+
+    function deleteRecord(index) {
+      if (confirm('確定要刪除這條記錄嗎？')) {
+        healthData.splice(index, 1);
+        saveHealthData();
+        displayRecordsForEdit();
+      }
+    }
+
+    function saveHealthData() {
+      if (currentUser) {
+        localStorage.setItem(`healthData_${currentUser}`, JSON.stringify(healthData));
+      }
+    }
+
+    function loadHealthData() {
+      if (currentUser) {
+        const data = localStorage.getItem(`healthData_${currentUser}`);
+        healthData = data ? JSON.parse(data) : [];
+      } else {
+        healthData = [];
+      }
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const username = document.getElementById('loginUsername').value;
+      const password = document.getElementById('loginPassword').value;
+      // 這裡應該有真正的身份驗證邏輯
+      // 為了演示，我們只是簡單地檢查用戶名和密碼是否存在
+      if (username && password) {
+        currentUser = username;
+        loadHealthData();
+        document.getElementById('loginLogout').textContent = '登出';
+        showSection('record');
+      } else {
+        alert('登入失敗');
+      }
+    });
+
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const username = document.getElementById('registerUsername').value;
+      const password = document.getElementById('registerPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      if (password !== confirmPassword) {
+        alert('密碼不一致');
+        return;
+      }
+      // 這裡應該有真正的註冊邏輯
+      // 為了演示，我們只是簡單地將用戶名和密碼存儲在 localStorage 中
+      localStorage.setItem(`user_${username}`, password);
+      alert('註冊成功，請登入');
+      showSection('login');
+    });
+
+    function toggleLoginLogout() {
+      if (currentUser) {
+        currentUser = null;
+        healthData = [];
+        document.getElementById('loginLogout').textContent = '登入';
+        showSection('login');
+      } else {
+        showSection('login');
+      }
+    }
+
+    function checkLoginStatus() {
+      if (currentUser) {
+        document.getElementById('loginLogout').textContent = '登出';
+        loadHealthData();
+        showSection('record');
+      } else {
+        document.getElementById('loginLogout').textContent = '登入';
+        showSection('login');
+      }
+    }
+
+    function importRecords() {
+      const file = document.getElementById('importFile').files[0];
+      if (!file) {
+        alert('請選擇檔案');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, {type: 'array'});
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, {raw: false});
+
+        jsonData.forEach(record => {
+          healthData.push({
+            date: record.date,
+            glucoseType: record.glucoseType,
+            glucose: parseFloat(record.glucose),
+            meal: record.meal,
+            systolic: parseFloat(record.systolic),
+            diastolic: parseFloat(record.diastolic),
+            heartRate: parseFloat(record.heartRate),
+            weight: parseFloat(record.weight)
+          });
+        });
+
+        saveHealthData();
+        alert('記錄已匯入');
+        updateCharts(currentPeriod);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function exportToGoogleSheets() {
+      const worksheet = XLSX.utils.json_to_sheet(healthData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Health Records");
+      XLSX.writeFile(workbook, "health_records.xlsx");
+    }
+
+    // Initial chart render
+    updateCharts('week');
+  </script>
+</body>
+</html>
