@@ -692,80 +692,80 @@
       displayRecordsForEdit();
     }
 
-    function displayRecordsForEdit() {
-      const tbody = document.querySelector('#recordsTable tbody');
-      tbody.innerHTML = '';
+  function displayRecordsForEdit() {
+    const tbody = document.querySelector('#recordsTable tbody');
+    tbody.innerHTML = '';
 
-      let filteredData = [...healthData];
-      const now = new Date();
+    let filteredData = [...healthData];
+    const now = new Date();
 
-      if (currentRecordPeriod !== 'custom') {
-        const days = parseInt(currentRecordPeriod);
-        const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-        filteredData = filteredData.filter(record => new Date(record.date) >= startDate);
-      } else {
-        const customDate = new Date(document.getElementById('customDate').value);
-        customDate.setHours(0, 0, 0, 0);
-        const endDate = new Date(customDate.getTime() + 24 * 60 * 60 * 1000);
-        filteredData = filteredData.filter(record => {
-          const recordDate = new Date(record.date);
-          return recordDate >= customDate && recordDate < endDate;
-        });
-      }
-
-      filteredData.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      filteredData.forEach((record, index) => {
-        const row = tbody.insertRow();
-        row.innerHTML = `
-          <td><input type="datetime-local" value="${record.date}" data-index="${index}" data-field="date"></td>
-          <td><input type="number" value="${record.glucoseType === 'fasting' ? record.glucose : ''}" data-index="${index}" data-field="fasting"></td>
-          <td><input type="number" value="${record.glucoseType === 'postprandial' ? record.glucose : ''}" data-index="${index}" data-field="postprandial"></td>
-          <td><input type="text" value="${record.meal || ''}" data-index="${index}" data-field="meal"></td>
-          <td><input type="number" value="${record.systolic || ''}" data-index="${index}" data-field="systolic"></td>
-          <td><input type="number" value="${record.diastolic || ''}" data-index="${index}" data-field="diastolic"></td>
-          <td><input type="number" value="${record.heartRate || ''}" data-index="${index}" data-field="heartRate"></td>
-          <td><input type="number" value="${record.weight || ''}" step="0.1" data-index="${index}" data-field="weight"></td>
-          <td>
-            <button onclick="saveRecord(${index})">保存</button>
-            <button onclick="deleteRecord(${index})">刪除</button>
-          </td>
-        `;
+    if (currentRecordPeriod !== 'custom') {
+      const days = parseInt(currentRecordPeriod);
+      const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      filteredData = filteredData.filter(record => new Date(record.date) >= startDate);
+    } else {
+      const customDate = new Date(document.getElementById('customDate').value);
+      customDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(customDate.getTime() + 24 * 60 * 60 * 1000);
+      filteredData = filteredData.filter(record => {
+        const recordDate = new Date(record.date);
+        return recordDate >= customDate && recordDate < endDate;
       });
     }
 
-    function saveRecord(index) {
-      const inputs = document.querySelectorAll(`input[data-index="${index}"]`);
-      const updatedRecord = {};
-      inputs.forEach(input => {
-        const field = input.dataset.field;
-        const value = input.value;
-        if (field === 'date') {
-          updatedRecord.date = value;
-        } else if (field === 'fasting' || field === 'postprandial') {
-          if (value) {
-            updatedRecord.glucoseType = field;
-            updatedRecord.glucose = parseFloat(value);
-          }
-        } else if (field === 'meal') {
-          updatedRecord.meal = value;
-        } else {
-          updatedRecord[field] = value ? parseFloat(value) : null;
+    filteredData.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    filteredData.forEach((record, index) => {
+      const row = tbody.insertRow();
+      row.innerHTML = `
+        <td><input type="datetime-local" value="${record.date}" data-index="${healthData.indexOf(record)}" data-field="date"></td>
+        <td><input type="number" value="${record.glucoseType === 'fasting' ? record.glucose : ''}" data-index="${healthData.indexOf(record)}" data-field="fasting"></td>
+        <td><input type="number" value="${record.glucoseType === 'postprandial' ? record.glucose : ''}" data-index="${healthData.indexOf(record)}" data-field="postprandial"></td>
+        <td><input type="text" value="${record.meal || ''}" data-index="${healthData.indexOf(record)}" data-field="meal"></td>
+        <td><input type="number" value="${record.systolic || ''}" data-index="${healthData.indexOf(record)}" data-field="systolic"></td>
+        <td><input type="number" value="${record.diastolic || ''}" data-index="${healthData.indexOf(record)}" data-field="diastolic"></td>
+        <td><input type="number" value="${record.heartRate || ''}" data-index="${healthData.indexOf(record)}" data-field="heartRate"></td>
+        <td><input type="number" value="${record.weight || ''}" step="0.1" data-index="${healthData.indexOf(record)}" data-field="weight"></td>
+        <td>
+          <button onclick="saveRecord(${healthData.indexOf(record)})">保存</button>
+          <button onclick="deleteRecord(${healthData.indexOf(record)})">刪除</button>
+        </td>
+      `;
+    });
+  }
+
+  function saveRecord(index) {
+    const inputs = document.querySelectorAll(`input[data-index="${index}"]`);
+    const updatedRecord = {};
+    inputs.forEach(input => {
+      const field = input.dataset.field;
+      const value = input.value;
+      if (field === 'date') {
+        updatedRecord.date = value;
+      } else if (field === 'fasting' || field === 'postprandial') {
+        if (value) {
+          updatedRecord.glucoseType = field;
+          updatedRecord.glucose = parseFloat(value);
         }
-      });
-      healthData[index] = {...healthData[index], ...updatedRecord};
+      } else if (field === 'meal') {
+        updatedRecord.meal = value;
+      } else {
+        updatedRecord[field] = value ? parseFloat(value) : null;
+      }
+    });
+    healthData[index] = {...healthData[index], ...updatedRecord};
+    localStorage.setItem('healthData', JSON.stringify(healthData));
+    alert('記錄已更新');
+    displayRecordsForEdit();
+  }
+
+  function deleteRecord(index) {
+    if (confirm('確定要刪除這條記錄嗎？')) {
+      healthData.splice(index, 1);
       localStorage.setItem('healthData', JSON.stringify(healthData));
-      alert('記錄已更新');
       displayRecordsForEdit();
     }
-
-    function deleteRecord(index) {
-      if (confirm('確定要刪除這條記錄嗎？')) {
-        healthData.splice(index, 1);
-        localStorage.setItem('healthData', JSON.stringify(healthData));
-        displayRecordsForEdit();
-      }
-    }
+  }
 
     function importRecords() {
       const fileInput = document.getElementById('importRecords');
