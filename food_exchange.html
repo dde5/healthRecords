@@ -1,0 +1,208 @@
+<html><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>營養即時換算平台</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f0f5f9;
+  }
+  h1, h2 {
+    color: #2c3e50;
+    text-align: center;
+  }
+  .calculator, .settings {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+  }
+  .input-section, .result-section {
+    padding: 15px;
+  }
+  .input-section {
+    background-color: #e8f4f8;
+    border-radius: 8px 8px 0 0;
+  }
+  .result-section {
+    background-color: #f8f9fa;
+    border-radius: 0 0 8px 8px;
+  }
+  label {
+    display: block;
+    margin-top: 10px;
+  }
+  input {
+    width: calc(100% - 16px);
+    padding: 8px;
+    margin-top: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  .result {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #fff;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  .warning {
+    color: red;
+    font-weight: bold;
+  }
+  nav {
+    background-color: #2c3e50;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+  nav ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+  }
+  nav ul li {
+    margin: 0 15px;
+  }
+  nav ul li a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: bold;
+  }
+  .active {
+    text-decoration: underline;
+  }
+  .settings {
+    display: none;
+  }
+</style>
+</head>
+<body>
+  <h1>營養即時換算平台</h1>
+  
+  <nav>
+    <ul>
+      <li><a href="health_records.html" id="exchange" onclick="window.location.href = './health_records.html';">健康記錄</a></li>
+      <li><a href="#calculator" class="active" onclick="showSection('calculator')">計算器</a></li>
+      <li><a href="#settings" onclick="showSection('settings')">設定</a></li>
+    </ul>
+  </nav>
+
+  <div id="calculatorSection">
+    <div class="calculator">
+      <h2>碳水化合物換算</h2>
+      <div class="input-section">
+        <label for="baseWeight">每 <input type="number" id="baseWeight" value="100" style="width: 60px; display: inline;"> g 含碳水量 (g):</label>
+        <input type="number" id="carbs" step="0.1" placeholder="請輸入碳水量">
+        <label for="weight">食物重量 (g):</label>
+        <input type="number" id="weight" step="0.1" placeholder="請輸入食物重量">
+      </div>
+      <div class="result-section">
+        <div id="carbResult" class="result"></div>
+      </div>
+    </div>
+
+    <div class="calculator">
+      <h2>鈉鹽換算</h2>
+      <div class="input-section">
+        <label for="sodium">鈉含量 (mg):</label>
+        <input type="number" id="sodium" step="0.1" placeholder="請輸入鈉含量">
+        <label for="servings">份數:</label>
+        <input type="number" id="servings" step="0.1" value="1" placeholder="請輸入份數">
+      </div>
+      <div class="result-section">
+        <div id="saltResult" class="result"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="settingsSection" class="settings">
+    <h2>每日建議量設定</h2>
+    <label for="dailyCarbs">每日建議碳水份數:</label>
+    <input type="number" id="dailyCarbs" step="0.5">
+    <label for="dailySalt">每日建議鹽攝取量 (g):</label>
+    <input type="number" id="dailySalt" step="0.1">
+  </div>
+
+  <script>
+    let dailyCarbs = parseFloat(localStorage.getItem('dailyCarbs')) || 10;
+    let dailySalt = parseFloat(localStorage.getItem('dailySalt')) || 5;
+
+    function showSection(section) {
+      document.getElementById('calculatorSection').style.display = section === 'calculator' ? 'block' : 'none';
+      document.getElementById('settingsSection').style.display = section === 'settings' ? 'block' : 'none';
+      document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+      document.querySelector(`nav a[href="#${section}"]`).classList.add('active');
+    }
+
+    function calculateCarbs() {
+      const baseWeight = parseFloat(document.getElementById('baseWeight').value) || 100;
+      const carbs = parseFloat(document.getElementById('carbs').value) || 0;
+      const weight = parseFloat(document.getElementById('weight').value) || 0;
+      const totalCarbs = (carbs * weight) / baseWeight;
+      const servings = totalCarbs / 15;
+      const percentage = (servings / dailyCarbs * 100).toFixed(2);
+      const result = document.getElementById('carbResult');
+      result.innerHTML = `
+        <p>總碳水量: ${totalCarbs.toFixed(2)}g</p>
+        <p>碳水份數: ${servings.toFixed(2)}份</p>
+        <p>占每日碳水建議量【${dailyCarbs}份】的 <span class="${percentage > 100 ? 'warning' : ''}">${percentage}%</span></p>
+        <p>約等於 ${(servings * 0.25).toFixed(2)} 碗飯</p>
+      `;
+    }
+
+    function calculateSalt() {
+      const sodium = parseFloat(document.getElementById('sodium').value) || 0;
+      const servings = parseFloat(document.getElementById('servings').value) || 1;
+      const totalSodium = sodium * servings;
+      const salt = totalSodium / 400;
+      const percentage = (salt / dailySalt * 100).toFixed(2);
+      const result = document.getElementById('saltResult');
+      result.innerHTML = `
+        <p>總鈉含量: ${totalSodium.toFixed(2)}mg</p>
+        <p>鹽含量: ${salt.toFixed(2)}g</p>
+        <p>占每日鹽建議量【${dailySalt}g】的 <span class="${percentage > 100 ? 'warning' : ''}">${percentage}%</span></p>
+      `;
+    }
+
+    function updateSettings() {
+      dailyCarbs = parseFloat(document.getElementById('dailyCarbs').value) || 10;
+      dailySalt = parseFloat(document.getElementById('dailySalt').value) || 5;
+      localStorage.setItem('dailyCarbs', dailyCarbs);
+      localStorage.setItem('dailySalt', dailySalt);
+      calculateCarbs();
+      calculateSalt();
+    }
+
+    function loadSettings() {
+      document.getElementById('dailyCarbs').value = dailyCarbs;
+      document.getElementById('dailySalt').value = dailySalt;
+    }
+
+    // 添加事件監聽器
+    ['baseWeight', 'carbs', 'weight'].forEach(id => {
+      document.getElementById(id).addEventListener('input', calculateCarbs);
+    });
+
+    ['sodium', 'servings'].forEach(id => {
+      document.getElementById(id).addEventListener('input', calculateSalt);
+    });
+
+    ['dailyCarbs', 'dailySalt'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updateSettings);
+    });
+
+    // 初始化
+    loadSettings();
+    calculateCarbs();
+    calculateSalt();
+  </script>
+</body></html>
