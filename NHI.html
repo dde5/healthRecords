@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>查詢頁面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .resizable {
+            resize: vertical;
+            overflow: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        .results {
+            flex-grow: 1;
+            overflow: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="resizable">
+            <h2>查詢條件</h2>
+            <form id="queryForm">
+                <label for="queryText">查詢文字：</label>
+                <input type="text" id="queryText" name="queryText" placeholder="輸入查詢文字">
+                <label for="showCounts">每頁顯示：</label>
+                <select id="showCounts" name="showCounts">
+                    <option value="10">10筆</option>
+                    <option value="20">20筆</option>
+                    <option value="50">50筆</option>
+                </select>
+                <button type="button" onclick="fetchData()">查詢</button>
+            </form>
+        </div>
+        <div class="results" id="results">
+            <h2>查詢結果</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>診療項目代碼</th>
+                        <th>診療項目中文</th>
+                        <th>支付點數</th>
+                        <th>支付價生效起迄</th>
+                        <th>所屬章節</th>
+                        <th>查詢明細</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody">
+                    <!-- 查詢結果將顯示在這裡 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function fetchData() {
+            const queryText = document.getElementById('queryText').value;
+            const showCounts = document.getElementById('showCounts').value;
+            const data = {
+                CNAME: queryText,
+                showCounts: showCounts
+            };
+
+            fetch('https://info.nhi.gov.tw/api/inae5000/inae5001s01/SQL0001', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultsBody = document.getElementById('resultsBody');
+                resultsBody.innerHTML = ''; // 清空現有結果
+
+                data.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${item.CODE}</td>
+                        <td>${item.CNAME}</td>
+                        <td>${item.PAY_POINTS}</td>
+                        <td>${item.PAY_S_DATE}～${item.PAY_E_DATE}</td>
+                        <td>${item.TREAT_CHAP_CODE}</td>
+                        <td><button onclick="showDetails('${item.CODE}')">查詢明細</button></td>
+                    `;
+                    resultsBody.appendChild(row);
+                });
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function showDetails(code) {
+            alert('顯示診療項目代碼 ' + code + ' 的詳細資訊');
+            // 這裡可以添加顯示詳細資訊的邏輯
+        }
+    </script>
+</body>
+</html>
