@@ -813,13 +813,23 @@
       }
     }
 
-    function exportRecords() {
+    function exportRecords2() {
       const worksheet = XLSX.utils.json_to_sheet(healthData);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "HealthRecords");
       XLSX.writeFile(workbook, "health_records.xlsx");
     }
 
+    function exportRecords() {
+      let csvContent = "data:text/csv;charset=utf-8,";
+      healthData.forEach(record => {
+        let row = Object.values(record).join(",");
+        csvContent += row + "\r\n";
+      });
+      const encodedUri = encodeURI(csvContent);
+      window.open(encodedUri);
+    }
+    
     // Initial chart render
     updateCharts('week');
     updateGlucoseChartRecord('week');
