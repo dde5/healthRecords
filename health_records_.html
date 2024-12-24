@@ -192,7 +192,7 @@
         .import-export label:hover {
             background-color: #2980b9;
         }
-    .modal {
+          .modal {
     display: none;
     position: fixed;
     z-index: 1;
@@ -379,7 +379,7 @@
     <h2>營養換算</h2>
 
   </div>
-   <div id="authModal" class="modal" style="display: none;">
+    <div id="authModal" class="modal" style="display: none;">
     <div class="modal-content">
       <span class="close" onclick="closeAuthModal()">×</span>
       <h2 id="authModalTitle">登入/註冊</h2>
@@ -506,7 +506,7 @@
     let isLoggedIn = true;
 
 
-    const API_URL = 'https://script.google.com/macros/s/AKfycbzE0SoSRI8brLjhyBAq6ur0qYGCD8i_nhTYNSL7z7k7LsbXiplU_szaY9t5sw5U-5iSVQ/exec';  // 請根據你的 Apps Script 網址修改
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzcdzlS8eptxGA53S1o0GtPP351UQf8-DcAsZIwMoPk_znwzDTQoaY5GshixJOBaCrsSg/exec';  // 請根據你的 Apps Script 網址修改
 
     // Set default time to now when the page loads
     function setDefaultDateTime() {
@@ -530,7 +530,8 @@
           modal.style.display = "none";
         }
       }
-        fetchRecords();
+      initLanguage();
+       fetchRecords();
     };
 
     document.getElementById('healthForm').addEventListener('submit', function(e) {
@@ -660,8 +661,6 @@
       document.getElementById('recordAdded').innerHTML = languageResource.recordAdded;
     }
 
-    // 初始化語言
-    initLanguage();
 
     // 添加語言切換事件
     document.getElementById('language').addEventListener('change', changeLanguage);
@@ -992,5 +991,5 @@
     updateGlucoseChartRecord('week');
   </script>
   
-  </body>
+</body>
 </html>
