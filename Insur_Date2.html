@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣保險日期計算器 (更新版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* 淺灰色背景 */
+        }
+        .calculator-card {
+            background-color: white;
+            border-radius: 0.75rem; /* 圓角 */
+            padding: 1.5rem; /* 內邊距 */
+            margin-bottom: 1.5rem; /* 下邊距 */
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); /* 陰影 */
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500; /* 中等字重 */
+            color: #374151; /* 深灰色文字 */
+        }
+        input[type="date"], input[type="number"], select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db; /* 淺灰色邊框 */
+            border-radius: 0.375rem; /* 圓角 */
+            margin-bottom: 1rem;
+            box-sizing: border-box; /* 確保 padding 不會增加寬度 */
+            background-color: white;
+        }
+        button {
+            background-color: #3b82f6; /* 藍色背景 */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.375rem; /* 圓角 */
+            cursor: pointer;
+            transition: background-color 0.3s ease; /* 過渡效果 */
+            font-weight: 600; /* 粗體 */
+        }
+        button:hover {
+            background-color: #2563eb; /* 深藍色背景 */
+        }
+        .result {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #e5e7eb; /* 更淺的灰色背景 */
+            border-radius: 0.375rem; /* 圓角 */
+            font-weight: 500;
+            color: #1f2937; /* 較深的灰色文字 */
+            min-height: 40px; /* 最小高度 */
+            border: 1px solid #d1d5db;
+            white-space: pre-wrap; /* Preserve line breaks in results */
+        }
+        .error-message {
+            color: #ef4444; /* 紅色 */
+            font-size: 0.875rem; /* 稍小字體 */
+            margin-top: -0.5rem;
+            margin-bottom: 1rem;
+        }
+        h2 {
+            font-size: 1.25rem; /* 較大字體 */
+            font-weight: 600; /* 粗體 */
+            margin-bottom: 1rem;
+            color: #111827; /* 最深的灰色 */
+            border-bottom: 2px solid #3b82f6; /* 藍色底線 */
+            padding-bottom: 0.5rem;
+        }
+        .note {
+            font-size: 0.875rem;
+            color: #4b5563; /* 中灰色文字 */
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <h1 class="text-2xl md:text-3xl font-bold text-center mb-8 text-gray-800">台灣保險日期計算器 (更新版)</h1>
+
+    <div class="max-w-4xl mx-auto">
+
+        <div class="calculator-card">
+            <h2>1. 住院日額給付天數計算</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="hosp-start-date">住院日期:</label>
+                    <input type="date" id="hosp-start-date">
+                </div>
+                <div>
+                    <label for="hosp-end-date">出院日期:</label>
+                    <input type="date" id="hosp-end-date">
+                </div>
+            </div>
+             <div class="mb-4">
+                <label>計算方式:</label>
+                <div class="flex items-center space-x-4">
+                    <label class="flex items-center">
+                        <input type="radio" name="hosp-calc-method" value="include-start-exclude-end" checked class="mr-2"> 算進不算出
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="hosp-calc-method" value="include-both" class="mr-2"> 算進算出
+                    </label>
+                </div>
+            </div>
+            <button onclick="calculateHospitalDays()">計算住院天數</button>
+            <div id="hosp-result" class="result"></div>
+            <div id="hosp-error" class="error-message"></div>
+        </div>
+
+        <div class="calculator-card">
+            <h2>2. 保單滿期日計算</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="policy-effective-date">保單生效日期:</label>
+                    <input type="date" id="policy-effective-date">
+                </div>
+                <div>
+                    <label for="dob-maturity">被保險人出生日期:</label>
+                    <input type="date" id="dob-maturity">
+                </div>
+                <div>
+                    <label for="policy-term-select">保險期間選項:</label>
+                    <select id="policy-term-select">
+                        <option value="">請選擇或自訂年期</option>
+                        <option value="to_age_85">至85足歲保單年度末</option>
+                        <option value="to_age_75">至75足歲保單年度末</option>
+                        <option value="to_age_74">至74足歲保單年度末</option>
+                        <option value="6">6年</option>
+                        <option value="10">10年</option>
+                        <option value="20">20年</option>
+                        <option value="custom">自訂年期 (請填下方欄位)</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="policy-term">保險期間 (年):</label>
+                    <input type="number" id="policy-term" min="1" placeholder="例如：20">
+                </div>
+            </div>
+            <button onclick="calculateMaturityDate()">計算滿期日</button>
+            <div id="maturity-result" class="result"></div>
+            <div id="maturity-error" class="error-message"></div>
+        </div>
+
+        <div class="calculator-card">
+            <h2>3. 同一次住院期間認定</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label for="discharge-date">前次出院日期:</label>
+                    <input type="date" id="discharge-date">
+                </div>
+                <div>
+                    <label for="admission-date">下次住院日期:</label>
+                    <input type="date" id="admission-date">
+                </div>
+                <div>
+                    <label for="interval-days-select">間隔天數約定:</label>
+                    <select id="interval-days-select">
+                        <option value="">請選擇或自訂</option>
+                        <option value="14">14天</option>
+                        <option value="90">90天</option>
+                        <option value="custom">自訂天數 (請填下方欄位)</option>
+                    </select>
+                    <input type="number" id="interval-days" min="1" placeholder="例如：14">
+                </div>
+            </div>
+            <button onclick="checkSameHospitalization()">判斷是否同一次住院</button>
+            <div id="same-hosp-result" class="result"></div>
+            <div id="same-hosp-error" class="error-message"></div>
+        </div>
+
+        <div class="calculator-card">
+            <h2>4. 等待期結束日計算</h2>
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="wait-effective-date">保單生效日期:</label>
+                    <input type="date" id="wait-effective-date">
+                </div>
+                <div>
+                    <label for="waiting-period-select">等待期天數選項:</label>
+                    <select id="waiting-period-select">
+                        <option value="">請選擇或自訂</option>
+                        <option value="0">0天 (即期生效)</option>
+                        <option value="30">30天</option>
+                        <option value="90">90天</option>
+                        <option value="custom">自訂天數 (請填下方欄位)</option>
+                    </select>
+                    <input type="number" id="waiting-period" min="0" placeholder="例如：30">
+                </div>
+            </div>
+            <button onclick="calculateWaitingPeriodEnd()">計算等待期結束日</button>
+            <div id="waiting-period-result" class="result"></div>
+            <div id="waiting-period-error" class="error-message"></div>
+        </div>
+
+        <div class="calculator-card">
+            <h2>5. 寬限期結束日計算</h2>
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="due-date">應繳費日期:</label>
+                    <input type="date" id="due-date">
+                </div>
+                <div>
+                    <label for="grace-period">寬限期天數 (天):</label>
+                    <input type="number" id="grace-period" value="30" min="0" placeholder="通常為 30">
+                </div>
+            </div>
+            <button onclick="calculateGracePeriodEnd()">計算寬限期結束日</button>
+            <div id="grace-period-result" class="result"></div>
+            <div id="grace-period-error" class="error-message"></div>
+        </div>
+
+        <div class="calculator-card">
+            <h2>6. 復效申請截止日計算</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="suspension-date">停效日期:</label>
+                    <input type="date" id="suspension-date">
+                </div>
+                <div>
+                    <label for="reinstatement-period-select">復效申請期限:</label>
+                    <select id="reinstatement-period-select">
+                        <option value="2y">2年 (法定)</option>
+                        <option value="6m">6個月內</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="calculateReinstatementDeadline()">計算復效申請截止日</button>
+            <div id="reinstatement-result" class="result"></div>
+            <div id="reinstatement-error" class="error-message"></div>
+            <div class="note">註：復效是原保單效力的恢復，不是重新訂約。</div>
+        </div>
+
+        <div class="calculator-card">
+            <h2>7. 保險年齡計算</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="dob">出生日期:</label>
+                    <input type="date" id="dob">
+                </div>
+                <div>
+                    <label for="age-calc-date">計算基準日 (通常為投保日):</label>
+                    <input type="date" id="age-calc-date">
+                </div>
+            </div>
+            <button onclick="calculateInsuranceAge()">計算保險年齡</button>
+            <div id="insurance-age-result" class="result"></div>
+            <div id="insurance-age-error" class="error-message"></div>
+        </div>
+
+        <div class="calculator-card">
+            <h2>8. 契約撤銷權截止日計算</h2>
+            <div>
+                <label for="policy-received-date">保單簽收日期:</label>
+                <input type="date" id="policy-received-date" class="mb-4">
+            </div>
+            <button onclick="calculateCancellationDeadline()">計算撤銷權截止日</button>
+            <div id="cancellation-result" class="result"></div>
+            <div id="cancellation-error" class="error-message"></div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- Helper Functions ---
+
+        // Function to display results
+        function displayResult(elementId, message, errorElIdSuffix = '-error') {
+            document.getElementById(elementId).innerHTML = message; // Use innerHTML for potential line breaks
+            document.getElementById(elementId.replace('-result', errorElIdSuffix)).textContent = ''; // Clear error
+        }
+
+        // Function to display errors
+        function displayError(elementId, message, resultElIdSuffix = '-result') {
+            document.getElementById(elementId.replace('-error', resultElIdSuffix)).textContent = ''; // Clear result
+            document.getElementById(elementId).textContent = message;
+        }
+        
+        // Function to parse date and set time to 00:00:00 UTC to avoid timezone issues
+        function parseDate(dateString) {
+            if (!dateString) return null;
+            // Dates from input type="date" are already YYYY-MM-DD, interpreted as local.
+            // To ensure consistency, especially for calculations, treat them as UTC midnight.
+            const parts = dateString.split('-');
+            if (parts.length === 3) {
+                const year = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+                const day = parseInt(parts[2], 10);
+                const date = new Date(Date.UTC(year, month, day));
+                 if (isNaN(date.getTime())) return null;
+                return date;
+            }
+            return null; // Invalid format
+        }
+
+        // Function to format date as YYYY-MM-DD (from UTC Date object)
+        function formatDate(date) {
+            if (!date || isNaN(date.getTime())) return '無效日期';
+            const year = date.getUTCFullYear();
+            const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(date.getUTCDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Function to add days to a date (UTC)
+        function addDays(date, days) {
+            const result = new Date(date.getTime());
+            result.setUTCDate(result.getUTCDate() + days);
+            return result;
+        }
+
+        // Function to add months to a date (UTC), handles end of month
+        function addMonths(date, months) {
+            const resultDate = new Date(date.getTime()); // Clone
+            const originalUTCDate = resultDate.getUTCDate();
+            
+            resultDate.setUTCMonth(resultDate.getUTCMonth() + months);
+            
+            // If the original day was, e.g., 31, and the new month doesn't have 31 days,
+            // setMonth would roll over. We need to set it to the last day of the target month.
+            if (resultDate.getUTCDate() !== originalUTCDate) {
+                // This means the day was adjusted because the target month is shorter.
+                // We want the last day of the target month.
+                // To get this, set day to 0 of the *next* month from the one we landed in.
+                // Example: Jan 31 + 1 month. setUTCMonth lands on Mar 3 (approx).
+                // resultDate.getUTCMonth() is now March (2).
+                // new Date(Date.UTC(resultDate.getUTCFullYear(), resultDate.getUTCMonth(), 0)) gives last day of Feb.
+                 const tempLastDay = new Date(Date.UTC(resultDate.getUTCFullYear(), resultDate.getUTCMonth(), 0));
+                 if (tempLastDay.getUTCDate() < originalUTCDate) {
+                     resultDate.setUTCDate(tempLastDay.getUTCDate());
+                 } else if (originalUTCDate > resultDate.getUTCDate() && resultDate.getUTCMonth() === (new Date(date.getTime()).getUTCMonth() + months + 12) % 12 ) {
+                     // If original day was 31, target month has 30 days, it becomes 30th.
+                     // This case is tricky. The simple setDate(0) after setMonth is more robust.
+                 }
+            }
+             // Simpler robust way:
+            const d = new Date(date.getTime());
+            const expectedMonth = (d.getUTCMonth() + months % 12 + 12) % 12;
+            d.setUTCFullYear(d.getUTCFullYear() + Math.floor(months / 12));
+            d.setUTCMonth(d.getUTCMonth() + (months % 12));
+
+
+            // If after adding months, the day of month changed (e.g. Jan 31 + 1 month -> March 2/3),
+            // it means we rolled over. Set to last day of the *intended* month.
+            if (d.getUTCMonth() !== expectedMonth) {
+                 // This happens if original day was > days in target month (e.g. Jan 31 + 1 month = Feb 28/29)
+                 // Set day to 0 of the month *after* the target month
+                 d.setUTCDate(0); // This sets it to the last day of the *previous* month, which is our target.
+            }
+            return d;
+        }
+
+
+        // Function to add years to a date (UTC)
+        function addYears(date, years) {
+            const result = new Date(date.getTime());
+            result.setUTCFullYear(result.getUTCFullYear() + years);
+            return result;
+        }
+
+        // Function to calculate difference in days between two UTC dates
+        function diffDays(date1, date2) {
+            const diffTime = date2.getTime() - date1.getTime();
+            return Math.round(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        // Insurance Age Calculation (Helper for section 2 and 7)
+        // Calculates insurance age based on DOB and a calculation date.
+        // Insurance age = actual age if (calcDate - birthday_this_year) < 6 months, else actual age + 1.
+        function getInsuranceAge(dob, calcDate) {
+            if (!dob || !calcDate || calcDate < dob) {
+                return NaN; // Invalid input
+            }
+
+            let actualAge = calcDate.getUTCFullYear() - dob.getUTCFullYear();
+            const dobMonth = dob.getUTCMonth();
+            const dobDay = dob.getUTCDate();
+            const calcMonth = calcDate.getUTCMonth();
+            const calcDay = calcDate.getUTCDate();
+
+            if (calcMonth < dobMonth || (calcMonth === dobMonth && calcDay < dobDay)) {
+                actualAge--; // Hasn't had birthday this year yet
+            }
+
+            // Check if 6 months or more have passed since the last birthday
+            const lastBirthdayThisYear = new Date(Date.UTC(calcDate.getUTCFullYear(), dobMonth, dobDay));
+            let referenceDateForAgeCalc = lastBirthdayThisYear;
+
+            if (calcDate < lastBirthdayThisYear) { // If calcDate is before this year's birthday
+                referenceDateForAgeCalc = new Date(Date.UTC(calcDate.getUTCFullYear() - 1, dobMonth, dobDay));
+            }
+            
+            // Create a date 6 months after the reference birthday
+            const sixMonthsAfterBirthday = addMonths(referenceDateForAgeCalc, 6);
+
+            if (calcDate >= sixMonthsAfterBirthday) {
+                return actualAge + 1;
+            }
+            return actualAge;
+        }
+
+
+        // --- Event Listeners for Dropdowns ---
+        document.getElementById('policy-term-select').addEventListener('change', function() {
+            const termInput = document.getElementById('policy-term');
+            const dobMaturityInput = document.getElementById('dob-maturity');
+            if (this.value && !isNaN(parseInt(this.value))) { // If it's a number (e.g., "6", "10", "20")
+                termInput.value = this.value;
+                termInput.readOnly = false;
+                 dobMaturityInput.required = false; // DOB not strictly needed if fixed term is chosen
+            } else if (this.value.startsWith('to_age_')) {
+                termInput.value = ''; // Clear it, as it will be calculated
+                termInput.placeholder = "依年齡計算";
+                termInput.readOnly = true;
+                dobMaturityInput.required = true;
+            } else if (this.value === 'custom' || this.value === "") {
+                termInput.placeholder = "例如：20";
+                termInput.readOnly = false;
+                dobMaturityInput.required = false; // Might not be needed if user inputs custom term
+            }
+        });
+
+        document.getElementById('interval-days-select').addEventListener('change', function() {
+            const intervalInput = document.getElementById('interval-days');
+            if (this.value && !isNaN(parseInt(this.value))) {
+                intervalInput.value = this.value;
+            } else if (this.value === 'custom' || this.value === "") {
+                 // Keep current value or allow user to type
+            }
+        });
+
+        document.getElementById('waiting-period-select').addEventListener('change', function() {
+            const waitingInput = document.getElementById('waiting-period');
+            if (this.value && !isNaN(parseInt(this.value))) {
+                waitingInput.value = this.value;
+            } else if (this.value === 'custom' || this.value === "") {
+                // Keep current value or allow user to type
+            }
+        });
+
+
+        // --- Calculation Functions ---
+
+        // 1. 住院日額給付天數計算
+        function calculateHospitalDays() {
+            const startDateStr = document.getElementById('hosp-start-date').value;
+            const endDateStr = document.getElementById('hosp-end-date').value;
+            const calcMethod = document.querySelector('input[name="hosp-calc-method"]:checked').value;
+            const resultEl = 'hosp-result';
+            const errorEl = 'hosp-error';
+
+            const startDate = parseDate(startDateStr);
+            const endDate = parseDate(endDateStr);
+
+            if (!startDate || !endDate) {
+                displayError(errorEl, '請輸入有效的住院和出院日期。');
+                return;
+            }
+            if (endDate < startDate) {
+                displayError(errorEl, '出院日期不能早於住院日期。');
+                return;
+            }
+
+            let days = diffDays(startDate, endDate);
+
+            if (calcMethod === 'include-start-exclude-end') {
+                // diffDays already gives this (e.g., 5/5 - 5/1 = 4 days if both are midnight)
+                 // If start and end are same day, result is 0 days for "算進不算出"
+            } else { // include-both (算進算出)
+                days += 1;
+            }
+            days = Math.max(0, days); // Ensure non-negative
+            displayResult(resultEl, `住院天數為： ${days} 天`);
+        }
+
+        // 2. 保單滿期日計算
+        function calculateMaturityDate() {
+            const effectiveDateStr = document.getElementById('policy-effective-date').value;
+            const dobStr = document.getElementById('dob-maturity').value;
+            const termSelectValue = document.getElementById('policy-term-select').value;
+            let termYearsInput = document.getElementById('policy-term').value;
+
+            const resultEl = 'maturity-result';
+            const errorEl = 'maturity-error';
+
+            const effectiveDate = parseDate(effectiveDateStr);
+            if (!effectiveDate) {
+                displayError(errorEl, '請輸入有效的保單生效日期。');
+                return;
+            }
+
+            let termYears;
+            let calculationBasis = "";
+
+            if (termSelectValue.startsWith('to_age_')) {
+                const dob = parseDate(dobStr);
+                if (!dob) {
+                    displayError(errorEl, '選擇依年齡計算滿期日時，請輸入被保險人出生日期。');
+                    return;
+                }
+                if (effectiveDate < dob) {
+                    displayError(errorEl, '保單生效日期不能早於出生日期。');
+                    return;
+                }
+
+                const targetFullAge = parseInt(termSelectValue.split('_')[2]); // e.g., 85
+                const insuranceAgeAtEffectiveDate = getInsuranceAge(dob, effectiveDate);
+
+                if (isNaN(insuranceAgeAtEffectiveDate)) {
+                     displayError(errorEl, '無法計算生效日之保險年齡，請檢查出生日期。');
+                     return;
+                }
+                
+                termYears = targetFullAge - insuranceAgeAtEffectiveDate;
+                calculationBasis = ` (依保險年齡 ${insuranceAgeAtEffectiveDate} 歲計算至 ${targetFullAge} 歲)`;
+
+                if (termYears <= 0) {
+                    displayError(errorEl, `依所選年齡計算，保單期間 (${termYears}年) 無效或已過期。被保險人生效日保險年齡為 ${insuranceAgeAtEffectiveDate} 歲。`);
+                    return;
+                }
+                 document.getElementById('policy-term').value = termYears; // Update the input field
+            } else {
+                if (!termYearsInput && (termSelectValue === "" || termSelectValue === "custom")) {
+                     displayError(errorEl, '請選擇保險期間選項或輸入自訂年期。');
+                     return;
+                }
+                if (termYearsInput) {
+                    termYears = parseInt(termYearsInput, 10);
+                } else if (!isNaN(parseInt(termSelectValue))) { // For cases like "6", "10", "20" directly selected
+                    termYears = parseInt(termSelectValue, 10);
+                } else {
+                     displayError(errorEl, '請輸入有效的保險期間 (正整數年)。');
+                     return;
+                }
+                
+                if (isNaN(termYears) || termYears <= 0) {
+                    displayError(errorEl, '請輸入有效的保險期間 (正整數年)。');
+                    return;
+                }
+            }
+
+            const anniversaryDate = addYears(effectiveDate, termYears);
+            const maturityDate = addDays(anniversaryDate, -1);
+
+            displayResult(resultEl, `保險期間：${termYears} 年${calculationBasis}\n保單滿期日約為： ${formatDate(maturityDate)} (保障至當日午夜12時)`);
+        }
+
+        // 3. 同一次住院期間認定
+        function checkSameHospitalization() {
+            const dischargeDateStr = document.getElementById('discharge-date').value;
+            const admissionDateStr = document.getElementById('admission-date').value;
+            const intervalDaysInput = document.getElementById('interval-days').value; // Read from input field
+            const resultEl = 'same-hosp-result';
+            const errorEl = 'same-hosp-error';
+
+            const dischargeDate = parseDate(dischargeDateStr);
+            const admissionDate = parseDate(admissionDateStr);
+            const intervalDays = parseInt(intervalDaysInput, 10);
+
+            if (!dischargeDate || !admissionDate || isNaN(intervalDays) || intervalDays <= 0) {
+                displayError(errorEl, '請輸入有效的前次出院日期、下次住院日期和間隔天數約定（正整數）。');
+                return;
+            }
+            if (admissionDate <= dischargeDate) {
+                displayError(errorEl, '下次住院日期必須晚於前次出院日期。');
+                return;
+            }
+
+            // Days *between* discharge and admission.
+            // If discharge 5/1, admission 5/3, diffDays is 2. Interval is 1 day (5/2).
+            const daysBetween = diffDays(dischargeDate, admissionDate) - 1;
+
+            if (daysBetween < intervalDays) {
+                displayResult(resultEl, `實際間隔 ${daysBetween} 天，小於約定的 ${intervalDays} 天。\n**視為同一次住院** (仍需確認住院原因是否相同或相關)。`);
+            } else {
+                displayResult(resultEl, `實際間隔 ${daysBetween} 天，未小於(等於或大於)約定的 ${intervalDays} 天。\n**視為不同次住院**。`);
+            }
+        }
+
+        // 4. 等待期結束日計算
+        function calculateWaitingPeriodEnd() {
+            const effectiveDateStr = document.getElementById('wait-effective-date').value;
+            const waitingPeriodInput = document.getElementById('waiting-period').value; // Read from input field
+            const resultEl = 'waiting-period-result';
+            const errorEl = 'waiting-period-error';
+
+            const effectiveDate = parseDate(effectiveDateStr);
+            const waitingPeriod = parseInt(waitingPeriodInput, 10);
+
+            if (!effectiveDate || isNaN(waitingPeriod) || waitingPeriod < 0) {
+                displayError(errorEl, '請輸入有效的生效日期和等待期天數（非負整數）。');
+                return;
+            }
+
+            if (waitingPeriod === 0) {
+                displayResult(resultEl, `等待期為 0 天，保障自 ${formatDate(effectiveDate)} 零時起生效。`);
+                return;
+            }
+
+            // Waiting period ends on the Nth day AT MIDNIGHT. Coverage starts the (N+1)th day.
+            // Example: 30 day waiting period, effective Jan 1.
+            // Waiting period covers Jan 1 to Jan 30. Ends Jan 30 midnight.
+            // Coverage starts Jan 31, 00:00.
+            const waitingPeriodEndDate = addDays(effectiveDate, waitingPeriod - 1);
+            const coverageStartDate = addDays(waitingPeriodEndDate, 1);
+
+            displayResult(resultEl, `等待期 ${waitingPeriod} 天，至 ${formatDate(waitingPeriodEndDate)} 午夜12時屆滿。\n保障自 ${formatDate(coverageStartDate)} 零時起生效。`);
+        }
+
+        // 5. 寬限期結束日計算
+        function calculateGracePeriodEnd() {
+            const dueDateStr = document.getElementById('due-date').value;
+            const gracePeriodDays = parseInt(document.getElementById('grace-period').value, 10);
+            const resultEl = 'grace-period-result';
+            const errorEl = 'grace-period-error';
+
+            const dueDate = parseDate(dueDateStr);
+
+            if (!dueDate || isNaN(gracePeriodDays) || gracePeriodDays < 0) {
+                displayError(errorEl, '請輸入有效的應繳費日期和寬限期天數（非負整數）。');
+                return;
+            }
+
+            // Grace period starts the day AFTER the due date
+            const gracePeriodStartDate = addDays(dueDate, 1);
+            // Grace period ends N days from its start (inclusive of start day)
+            const gracePeriodEndDate = addDays(gracePeriodStartDate, gracePeriodDays -1 );
+
+
+            displayResult(resultEl, `寬限期自 ${formatDate(gracePeriodStartDate)} 起算，至 ${formatDate(gracePeriodEndDate)} 午夜12時止。`);
+        }
+
+        // 6. 復效申請截止日計算
+        function calculateReinstatementDeadline() {
+            const suspensionDateStr = document.getElementById('suspension-date').value;
+            const periodOption = document.getElementById('reinstatement-period-select').value;
+            const resultEl = 'reinstatement-result';
+            const errorEl = 'reinstatement-error';
+
+            const suspensionDate = parseDate(suspensionDateStr);
+
+            if (!suspensionDate) {
+                displayError(errorEl, '請輸入有效的停效日期。');
+                return;
+            }
+
+            let deadlineDate;
+            let message = "";
+
+            if (periodOption === "6m") {
+                // Deadline is 6 months from suspension date (end of the 6th month)
+                const endOfSixthMonth = addMonths(suspensionDate, 6);
+                deadlineDate = addDays(endOfSixthMonth, -1); // Day before anniversary of 6 months
+                message = `依「停效後6個月內申請」計算：\n最晚應於 ${formatDate(deadlineDate)} 前提出復效申請。\n提醒：停效後六個月內申請復效，通常不需填寫健康告知書。`;
+            } else { // "2y" (default)
+                // Deadline is 2 years from the suspension date
+                const twoYearsLater = addYears(suspensionDate, 2);
+                deadlineDate = addDays(twoYearsLater, -1); // The day before the 2-year anniversary
+                message = `依「停效後2年內申請(法定)」計算：\n最晚應於 ${formatDate(deadlineDate)} 前提出復效申請。\n提醒：停效超過六個月至兩年內申請復效，需填寫健康告知書。`;
+            }
+            displayResult(resultEl, message);
+        }
+
+
+        // 7. 保險年齡計算
+        function calculateInsuranceAge() {
+            const dobStr = document.getElementById('dob').value;
+            const calcDateStr = document.getElementById('age-calc-date').value;
+            const resultEl = 'insurance-age-result';
+            const errorEl = 'insurance-age-error';
+
+            const dob = parseDate(dobStr);
+            const calcDate = parseDate(calcDateStr);
+
+            if (!dob || !calcDate) {
+                displayError(errorEl, '請輸入有效的出生日期和計算基準日。');
+                return;
+            }
+            if (calcDate < dob) {
+                displayError(errorEl, '計算基準日不能早於出生日期。');
+                return;
+            }
+
+            const insuranceAge = getInsuranceAge(dob, calcDate);
+            if (isNaN(insuranceAge)) {
+                 displayError(errorEl, '無法計算保險年齡，請檢查輸入日期。');
+                 return;
+            }
+            displayResult(resultEl, `於 ${formatDate(calcDate)} 的保險年齡為： ${insuranceAge} 歲`);
+        }
+
+        // 8. 契約撤銷權截止日計算 (簽收翌日起10天內)
+        function calculateCancellationDeadline() {
+            const receivedDateStr = document.getElementById('policy-received-date').value;
+            const resultEl = 'cancellation-result';
+            const errorEl = 'cancellation-error';
+
+            const receivedDate = parseDate(receivedDateStr);
+
+            if (!receivedDate) {
+                displayError(errorEl, '請輸入有效的保單簽收日期。');
+                return;
+            }
+
+            // Cancellation period starts the day AFTER receiving the policy
+            const cancellationStartDate = addDays(receivedDate, 1);
+            // The deadline is 10 days from the start date (inclusive of start day, so add 9 to start)
+            const deadlineDate = addDays(cancellationStartDate, 9);
+
+            displayResult(resultEl, `契約撤銷權期間自 ${formatDate(cancellationStartDate)} 起算，至 ${formatDate(deadlineDate)} 午夜12時止 (共10天)。`);
+        }
+
+        // Initialize dropdown dependent inputs
+        // Trigger change events to set initial states if needed or rely on default HTML values
+        document.addEventListener('DOMContentLoaded', () => {
+            // For policy term, if a numeric value is pre-selected in dropdown, update input
+            const policyTermSelect = document.getElementById('policy-term-select');
+            if (policyTermSelect.value && !isNaN(parseInt(policyTermSelect.value))) {
+                 document.getElementById('policy-term').value = policyTermSelect.value;
+            } else if (policyTermSelect.value.startsWith('to_age_')) {
+                document.getElementById('policy-term').placeholder = "依年齡計算";
+                document.getElementById('policy-term').readOnly = true;
+            }
+
+
+            const intervalSelect = document.getElementById('interval-days-select');
+            if (intervalSelect.value && !isNaN(parseInt(intervalSelect.value))) {
+                 document.getElementById('interval-days').value = intervalSelect.value;
+            } else { // Default or custom
+                 document.getElementById('interval-days').value = document.getElementById('interval-days').placeholder === "例如：14" ? "" : "14"; // Default to 14 if empty
+            }
+
+
+            const waitingSelect = document.getElementById('waiting-period-select');
+            if (waitingSelect.value && !isNaN(parseInt(waitingSelect.value))) {
+                 document.getElementById('waiting-period').value = waitingSelect.value;
+            } else { // Default or custom
+                document.getElementById('waiting-period').value = document.getElementById('waiting-period').placeholder === "例如：30" ? "" : "30"; // Default to 30 if empty
+            }
+        });
+
+    </script>
+
+</body>
+</html>
