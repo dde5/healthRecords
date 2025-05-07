@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣保險日期計算器 (專業版 v3)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #f0f2f5; 
+        }
+        .calculator-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        .calculator-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 1rem;
+        }
+        .calculator-card-header h2 {
+            font-size: 1.125rem; 
+            font-weight: 600;
+            color: #1f2937; 
+            margin-bottom: 0; 
+            border-bottom: none; 
+        }
+        .calculator-card-content {
+            display: block; 
+        }
+        .accordion-mode .calculator-card-content {
+            display: none; 
+        }
+        .accordion-mode .calculator-card.active .calculator-card-content {
+            display: block; 
+        }
+        .accordion-arrow {
+            transition: transform 0.3s ease;
+        }
+        .accordion-mode .calculator-card.active .accordion-arrow {
+            transform: rotate(90deg);
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+        input[type="date"], input[type="number"], select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            margin-bottom: 1rem;
+            box-sizing: border-box;
+            background-color: #f9fafb; 
+        }
+        input[type="date"]:focus, input[type="number"]:focus, select:focus {
+            outline: 2px solid transparent;
+            outline-offset: 2px;
+            border-color: #3b82f6; 
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+        }
+        button {
+            background-color: #3b82f6;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: 1px solid #1e40af; /* Added darker blue border */
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+            font-weight: 600;
+            width: 100%; 
+            margin-top: 0.5rem;
+        }
+        @media (min-width: 768px) { /* md breakpoint */
+            button {
+                width: auto; 
+            }
+        }
+        button:hover {
+            background-color: #2563eb;
+            border-color: #1c3da2; /* Even darker border on hover */
+        }
+        .result {
+            margin-top: 1.5rem;
+            padding: 1.25rem;
+            background-color: #eef2ff; 
+            border-radius: 0.5rem;
+            font-weight: 500;
+            color: #1f2937;
+            min-height: 40px;
+            border: 1px solid #c7d2fe; 
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+        .error-message {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: -0.5rem;
+            margin-bottom: 1rem;
+        }
+        .info-message { 
+            color: #059669; 
+            background-color: #d1fae5; 
+            border: 1px solid #6ee7b7;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .warning-message { 
+            color: #d97706; 
+            background-color: #fef3c7; 
+            border: 1px solid #fcd34d;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .note {
+            font-size: 0.875rem;
+            color: #4b5563;
+            margin-top: 1rem;
+            line-height: 1.5;
+        }
+        .faq-section {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: #f9fafb;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+        }
+        .faq-section h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 0.75rem;
+        }
+        .faq-question {
+            font-weight: 500;
+            color: #374151;
+            margin-top: 0.5rem;
+        }
+        .faq-answer {
+            font-size: 0.875rem;
+            color: #4b5563;
+            padding-left: 1rem; 
+            margin-bottom: 0.5rem;
+        }
+        .view-toggle-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .view-toggle-buttons button {
+            background-color: #e5e7eb;
+            color: #374151;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            border: 1px solid #d1d5db; /* Keep border for toggle buttons */
+        }
+        .view-toggle-buttons button.active {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        .view-toggle-buttons button svg {
+            width: 1.25rem;
+            height: 1.25rem;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        input[type="radio"], input[type="checkbox"] {
+            width: auto; 
+            margin-bottom: 0; 
+            margin-right: 0.5rem; 
+            vertical-align: middle; 
+        }
+        label.flex { 
+            align-items: center;
+            margin-bottom: 0.5rem; 
+        }
+        label.font-normal { 
+            font-weight: 400;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <h1 class="text-2xl md:text-3xl font-bold text-center mb-6 text-gray-800">台灣保險日期計算器 (專業版 v3)</h1>
+
+    <div class="view-toggle-buttons">
+        <button id="view-all-btn" title="全部展開">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 018.25 20.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25A2.25 2.25 0 0113.5 8.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25h-2.25a2.25 2.25 0 01-2.25-2.25v-2.25z" />
+            </svg>
+            全部
+        </button>
+        <button id="view-accordion-btn" title="分項顯示">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+            分項
+        </button>
+    </div>
+
+    <div id="calculator-container" class="max-w-4xl mx-auto">
+
+        <!-- 卡片 1: 住院日額給付天數計算 -->
+        <div class="calculator-card">
+            <div class="calculator-card-header">
+                <h2>1. 住院日額給付天數計算</h2>
+                <svg class="accordion-arrow w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </div>
+            <div class="calculator-card-content">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="hosp-start-date">住院日期:</label>
+                        <input type="date" id="hosp-start-date">
+                    </div>
+                    <div>
+                        <label for="hosp-end-date">出院日期:</label>
+                        <input type="date" id="hosp-end-date">
+                    </div>
+                </div>
+                 <div class="mb-4">
+                    <label>計算方式:</label>
+                    <div class="flex items-center space-x-4">
+                        <label class="flex items-center"><input type="radio" name="hosp-calc-method" value="include-start-exclude-end" class="mr-2"> 算進不算出</label>
+                        <label class="flex items-center"><input type="radio" name="hosp-calc-method" value="include-both" checked class="mr-2"> 算進算出</label>
+                    </div>
+                </div>
+                <button onclick="calculateHospitalDays()">計算住院天數</button>
+                <div id="hosp-result" class="result"></div>
+                <div id="hosp-error" class="error-message"></div>
+            </div>
+        </div>
+
+        <!-- 卡片 2: 保單滿期日計算 -->
+        <div class="calculator-card">
+            <div class="calculator-card-header">
+                <h2>2. 保單滿期日計算</h2>
+                <svg class="accordion-arrow w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </div>
+            <div class="calculator-card-content">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="policy-effective-date">保單生效日期:</label>
+                        <input type="date" id="policy-effective-date">
+                    </div>
+                    <div>
+                        <label for="dob-maturity">被保險人出生日期:</label>
+                        <input type="date" id="dob-maturity">
+                    </div>
+                    <div>
+                        <label for="policy-term-select">保險期間選項:</label>
+                        <select id="policy-term-select">
+                            <option value="">請選擇或自訂年期</option>
+                            <option value="to_age_85">至85足歲保單年度末</option>
+                            <option value="to_age_75">至75足歲保單年度末</option>
+                            <option value="to_age_74">至74足歲保單年度末</option>
+                            <option value="6">6年</option>
+                            <option value="10">10年</option>
+                            <option value="20">20年</option>
+                            <option value="custom">自訂年期 (請填下方欄位)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="policy-term">保險期間 (年):</label>
+                        <input type="number" id="policy-term" min="1" placeholder="例如：20">
+                    </div>
+                </div>
+                <button onclick="calculateMaturityDate()">計算滿期日</button>
+                <div id="maturity-result" class="result"></div>
+                <div id="maturity-error" class="error-message"></div>
+            </div>
+        </div>
+
+        <!-- 卡片 3: 同一次住院期間認定 -->
+         <div class="calculator-card">
+            <div class="calculator-card-header">
+                <h2>3. 同一次住院期間認定</h2>
+                <svg class="accordion-arrow w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </div>
+            <div class="calculator-card-content">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label for="discharge-date">前次出院日期:</label>
+                        <input type="date" id="discharge-date">
+                    </div>
+                    <div>
+                        <label for="admission-date">下次住院日期:</label>
+                        <input type="date" id="admission-date">
+                    </div>
+                    <div>
+                        <label for="interval-days-select">間隔天數約定:</label>
+                        <select id="interval-days-select">
+                            <option value="">請選擇或自訂</option>
+                            <option value="14" selected>14天</option> <!-- Default selected -->
+                            <option value="90">90天</option>
+                            <option value="custom">自訂天數 (請填下方欄位)</option>
+                        </select>
+                        <input type="number" id="interval-days" min="1" placeholder="例如：14" value="14"> <!-- Default value -->
+                    </div>
+                </div>
+                <button onclick="checkSameHospitalization()">判斷是否同一次住院</button>
+                <div id="same-hosp-result" class="result"></div>
+                <div id="same-hosp-error" class="error-message"></div>
+            </div>
+        </div>
+
+        <!-- 卡片 4: 等待期結束日計算 -->
+        <div class="calculator-card">
+            <div class="calculator-card-header">
+                <h2>4. 等待期結束日計算</h2>
+                <svg class="accordion-arrow w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </div>
+            <div class="calculator-card-content">
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="wait-effective-date">保單生效日期:</label>
+                        <input type="date" id="wait-effective-date">
+                    </div>
+                    <div>
+                        <label for="waiting-period-select">等待期天數選項:</label>
+                        <select id="waiting-period-select">
+                            <option value="">請選擇或自訂</option>
+                            <option value="0">0天 (即期生效)</option>
+                            <option value="30">30天 (常見疾病等待期)</option>
+                            <option value="90">90天 (常見癌症等待期)</option>
+                            <option value="custom">自訂天數 (請填下方欄位)</option>
+                        </select>
+                        <input type="number" id="waiting-period" min="0" placeholder="例如：30">
+                    </div>
+                </div>
+                <button onclick="calculateWaitingPeriodEnd()">計算等待期結束日</button>
+                <div id="waiting-period-result" class="result"></div>
+                <div id="waiting-period-error" class="error-message"></div>
+            </div>
+        </div>
+
+        <!-- 卡片 5: 寬限期結束日計算 -->
+        <div class="calculator-card">
+            <div class="calculator-card-header">
+                <h2>5. 寬限期結束日計算 (新版)</h2>
+                <svg class="accordion-arrow w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </div>
+            <div class="calculator-card-content">
+                <div>
+                    <label for="due-date-grace">應繳費日期:</label>
+                    <input type="date" id="due-date-grace">
+                </div>
+                <div class="mt-4">
+                    <label>繳別與催告情況:</label>
+                    <div class="space-y-2">
+                        <div>
+                            <input type="radio" id="payment-monthly-quarterly" name="payment-type-grace" value="monthly_quarterly" checked>
+                            <label for="payment-monthly-quarterly" class="font-normal">月繳 / 季繳 (通常無催告)</label>
+                        </div>
+                        <div>
+                            <input type="radio" id="payment-annual-semiannual" name="payment-type-grace" value="annual_semiannual">
+                            <label for="payment-annual-semiannual" class="font-normal">年繳 / 半年繳</label>
+                        </div>
+                    </div>
+                </div>
+                <div id="annual-semi-options-grace" class="mt-4 pl-6 border-l-2 border-blue-200 hidden">
+                    <label>年繳/半年繳催告情況:</label>
+                     <div class="space-y-2">
+                        <div>
+                            <input type="radio" id="notice-received-grace" name="notice-status-grace" value="received" checked>
+                            <label for="notice-received-grace" class="font-normal">已收到催告通知書</label>
+                        </div>
+                        <div id="notice-received-date-container-grace" class="mt-2">
+                             <label for="notice-date-grace">收到催告通知書日期:</label>
+                             <input type="date" id="notice-date-grace">
+                        </div>
+                        <div>
+                            <input type="radio" id="notice-not-received-grace" name="notice-status-grace" value="not_received">
+                            <label for="notice-not-received-grace" class="font-normal">未收到催告通知書</label>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="calculateGracePeriodAll()" class="mt-4">計算全部繳別寬限期</button>
+                <div id="grace-period-result" class="result"></div>
+                <div id="grace-period-error" class="error-message"></div>
+                <div class="note">
+                    提醒：寬限期間內保單仍具保障，逾期未繳且未設定自動墊繳，保單即停效。<br>
+                    年繳、半年繳若未收到催告，停效的成立可能會有爭議。本計算僅供參考。
+                </div>
+            </div>
+        </div>
+
+        <!-- 卡片 6: 復效申請截止日計算 -->
+        <div class="calculator-card">
+            <div class="calculator-card-header">
+                <h2>6. 復效申請截止日計算 (新版)</h2>
+                <svg class="accordion-arrow w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </div>
+            <div class="calculator-card-content">
+                <div>
+                    <label for="suspension-date-reinstatement">停效日期:</label>
+                    <input type="date" id="suspension-date-reinstatement">
+                </div>
+                <button onclick="calculateReinstatementDeadlines()" class="mt-4">計算復效申請截止日</button>
+                <div id="reinstatement-result" class="result"></div>
+                <div id="reinstatement-error" class="error-message"></div>
+
+                <div class="faq-section">
+                    <h3>復效相關常見問題 (FAQ)</h3>
+                    <p class="faq-question">Q1：復效保險後，保障需要等待期嗎？</p>
+                    <p class="faq-answer">A1：根據保險法規定，保險契約復效後，保險公司不得再約定等待期間。因此，保戶復效保險後，即可恢復保險保障，無需等待期。</p>
+                    <p class="faq-question">Q2：復效保險的保障範圍與原保險相同嗎？</p>
+                    <p class="faq-answer">A2：是，保險復效後，保單的保障範圍與原保險相同。但是，若保戶在保險失效期間因意外或疾病發生理賠，則復效後的保單將不包含該段期間的保障範圍。</p>
+                    <p class="faq-question">Q3：保險復效後，保費會增加嗎？</p>
+                    <p class="faq-answer">A3：通常保險復效後，保費不會增加。不過，若保戶在保險失效期間年齡有增加，或保險公司調整保費，則復效後的保費可能會略有調整。</p>
+                </div>
+                 <div class="note">註：復效是原保單效力的恢復，不是重新訂約。超過二年未申請復效，保單將永久失效。</div>
+            </div>
+        </div>
+
+        <!-- 卡片 7: 保險年齡計算 -->
+        <div class="calculator-card">
+            <div class="calculator-card-header">
+                <h2>7. 保險年齡計算</h2>
+                <svg class="accordion-arrow w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </div>
+            <div class="calculator-card-content">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="dob">出生日期:</label>
+                        <input type="date" id="dob">
+                    </div>
+                    <div>
+                        <label for="age-calc-date">計算基準日 (通常為投保日):</label>
+                        <input type="date" id="age-calc-date">
+                    </div>
+                </div>
+                <button onclick="calculateInsuranceAge()">計算保險年齡</button>
+                <div id="insurance-age-result" class="result"></div>
+                <div id="insurance-age-error" class="error-message"></div>
+            </div>
+        </div>
+
+        <!-- 卡片 8: 契約撤銷權截止日計算 -->
+        <div class="calculator-card">
+            <div class="calculator-card-header">
+                <h2>8. 契約撤銷權截止日計算</h2>
+                <svg class="accordion-arrow w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </div>
+            <div class="calculator-card-content">
+                <div>
+                    <label for="policy-received-date">保單簽收日期:</label>
+                    <input type="date" id="policy-received-date" class="mb-4">
+                </div>
+                <button onclick="calculateCancellationDeadline()">計算撤銷權截止日</button>
+                <div id="cancellation-result" class="result"></div>
+                <div id="cancellation-error" class="error-message"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- Helper Functions ---
+        function displayResult(elementId, message, errorElIdSuffix = '-error') {
+            const resultEl = document.getElementById(elementId);
+            const errorEl = document.getElementById(elementId.replace('-result', errorElIdSuffix));
+            if (resultEl) resultEl.innerHTML = message;
+            if (errorEl) errorEl.textContent = '';
+        }
+
+        function displayError(elementId, message, resultElIdSuffix = '-result') {
+            const resultEl = document.getElementById(elementId.replace('-error', resultElIdSuffix));
+            const errorEl = document.getElementById(elementId);
+            if (resultEl) resultEl.textContent = '';
+            if (errorEl) errorEl.textContent = message;
+        }
+        
+        function parseDate(dateString) {
+            if (!dateString) return null;
+            const parts = dateString.split('-');
+            if (parts.length === 3) {
+                const year = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1;
+                const day = parseInt(parts[2], 10);
+                const date = new Date(Date.UTC(year, month, day));
+                 if (isNaN(date.getTime())) return null;
+                return date;
+            }
+            return null;
+        }
+
+        function formatDate(date) {
+            if (!date || isNaN(date.getTime())) return '無效日期';
+            const year = date.getUTCFullYear();
+            const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(date.getUTCDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function addDays(date, days) {
+            const result = new Date(date.getTime());
+            result.setUTCDate(result.getUTCDate() + days);
+            return result;
+        }
+        
+        function addMonths(date, months) {
+            const d = new Date(date.getTime()); 
+            const originalDay = d.getUTCDate();
+            d.setUTCMonth(d.getUTCMonth() + months);
+            if (d.getUTCDate() !== originalDay) {
+                d.setUTCDate(0); 
+            }
+            return d;
+        }
+
+        function addYears(date, years) {
+            const d = new Date(date.getTime());
+            const originalMonth = d.getUTCMonth();
+            const originalDay = d.getUTCDate();
+            d.setUTCFullYear(d.getUTCFullYear() + years);
+            if (originalMonth === 1 && originalDay === 29 && d.getUTCDate() !== 29) {
+                d.setUTCMonth(1); 
+                d.setUTCDate(0); 
+            }
+            return d;
+        }
+
+
+        function diffDays(date1, date2) {
+            const diffTime = date2.getTime() - date1.getTime();
+            return Math.round(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        function getInsuranceAge(dob, calcDate) {
+            if (!dob || !calcDate || calcDate < dob) {
+                return NaN;
+            }
+            let actualAge = calcDate.getUTCFullYear() - dob.getUTCFullYear();
+            const dobMonth = dob.getUTCMonth();
+            const dobDay = dob.getUTCDate();
+            const calcMonth = calcDate.getUTCMonth();
+            const calcDay = calcDate.getUTCDate();
+
+            if (calcMonth < dobMonth || (calcMonth === dobMonth && calcDay < dobDay)) {
+                actualAge--;
+            }
+            
+            const lastBirthdayThisYear = new Date(Date.UTC(calcDate.getUTCFullYear(), dobMonth, dobDay));
+            let referenceDateForAgeCalc = lastBirthdayThisYear;
+
+            if (calcDate < lastBirthdayThisYear) {
+                referenceDateForAgeCalc = new Date(Date.UTC(calcDate.getUTCFullYear() - 1, dobMonth, dobDay));
+            }
+            
+            const sixMonthsAfterBirthday = addMonths(referenceDateForAgeCalc, 6);
+
+            if (calcDate >= sixMonthsAfterBirthday) {
+                return actualAge + 1;
+            }
+            return actualAge;
+        }
+
+        // --- UI Mode Toggle ---
+        const calculatorContainer = document.getElementById('calculator-container');
+        const viewAllBtn = document.getElementById('view-all-btn');
+        const viewAccordionBtn = document.getElementById('view-accordion-btn');
+        const calculatorCards = document.querySelectorAll('.calculator-card');
+        const cardHeaders = document.querySelectorAll('.calculator-card-header');
+
+        function setViewMode(mode, userInitiated = false) {
+            if (mode === 'all') {
+                calculatorContainer.classList.remove('accordion-mode');
+                viewAllBtn.classList.add('active');
+                viewAccordionBtn.classList.remove('active');
+                calculatorCards.forEach(card => {
+                    card.classList.remove('active'); 
+                    card.querySelector('.calculator-card-content').style.display = 'block';
+                    const arrow = card.querySelector('.accordion-arrow');
+                    if (arrow) arrow.style.display = 'none';
+                });
+                if (userInitiated) localStorage.setItem('calculatorViewMode', 'all');
+
+            } else if (mode === 'accordion') {
+                calculatorContainer.classList.add('accordion-mode');
+                viewAllBtn.classList.remove('active');
+                viewAccordionBtn.classList.add('active');
+                
+                let activeCardFound = false;
+                // Check if any card was previously active due to user interaction
+                if (userInitiated || localStorage.getItem('activeCardIndex')) {
+                     const activeIndex = localStorage.getItem('activeCardIndex');
+                     calculatorCards.forEach((card, index) => {
+                        const arrow = card.querySelector('.accordion-arrow');
+                        if (arrow) arrow.style.display = 'block';
+                        if (activeIndex && parseInt(activeIndex) === index) {
+                            card.classList.add('active');
+                            card.querySelector('.calculator-card-content').style.display = 'block';
+                            activeCardFound = true;
+                        } else {
+                            card.classList.remove('active');
+                            card.querySelector('.calculator-card-content').style.display = 'none';
+                        }
+                    });
+                }
+
+                // If no card was active (e.g. fresh load or all were closed), open the first one
+                if (!activeCardFound && calculatorCards.length > 0) {
+                    calculatorCards.forEach((card, index) => {
+                        const arrow = card.querySelector('.accordion-arrow');
+                        if (arrow) arrow.style.display = 'block';
+                        if (index === 0) {
+                            card.classList.add('active');
+                            card.querySelector('.calculator-card-content').style.display = 'block';
+                            localStorage.setItem('activeCardIndex', '0'); // Store that the first is now active
+                        } else {
+                            card.classList.remove('active');
+                            card.querySelector('.calculator-card-content').style.display = 'none';
+                        }
+                    });
+                }
+                if (userInitiated) localStorage.setItem('calculatorViewMode', 'accordion');
+            }
+        }
+
+        viewAllBtn.addEventListener('click', () => {
+            localStorage.removeItem('activeCardIndex'); // Clear specific active card
+            setViewMode('all', true);
+        });
+        viewAccordionBtn.addEventListener('click', () => {
+             // When switching to accordion, we might want to default to first open,
+             // unless localStorage already has a preference for 'accordion' view mode,
+             // in which case `activeCardIndex` might still be relevant.
+            setViewMode('accordion', true);
+        });
+
+        cardHeaders.forEach((header, idx) => {
+            header.addEventListener('click', () => {
+                if (calculatorContainer.classList.contains('accordion-mode')) {
+                    const card = header.closest('.calculator-card');
+                    const content = card.querySelector('.calculator-card-content');
+                    const isActive = card.classList.contains('active');
+                    
+                    // Optionally close others if you want only one open at a time
+                    // calculatorCards.forEach((otherCard, otherIdx) => {
+                    //     if (otherIdx !== idx) {
+                    //         otherCard.classList.remove('active');
+                    //         otherCard.querySelector('.calculator-card-content').style.display = 'none';
+                    //     }
+                    // });
+
+                    if (isActive) {
+                        card.classList.remove('active');
+                        content.style.display = 'none';
+                        localStorage.removeItem('activeCardIndex'); // No card is active now
+                    } else {
+                        card.classList.add('active');
+                        content.style.display = 'block';
+                        localStorage.setItem('activeCardIndex', idx.toString()); // Store which card is active
+                    }
+                    localStorage.setItem('calculatorViewMode', 'accordion'); // Confirm accordion mode
+                }
+            });
+        });
+        
+        // --- Event Listeners for Dropdowns ---
+        document.getElementById('policy-term-select').addEventListener('change', function() {
+            const termInput = document.getElementById('policy-term');
+            const dobMaturityInput = document.getElementById('dob-maturity');
+            const effectiveDateInput = document.getElementById('policy-effective-date');
+            if (this.value && !isNaN(parseInt(this.value))) {
+                termInput.value = this.value;
+                termInput.readOnly = false;
+                termInput.placeholder = "例如：20";
+                dobMaturityInput.required = false; 
+                effectiveDateInput.required = true;
+            } else if (this.value.startsWith('to_age_')) {
+                termInput.value = ''; 
+                termInput.placeholder = "依年齡自動計算";
+                termInput.readOnly = true;
+                dobMaturityInput.required = true;
+                effectiveDateInput.required = true;
+            } else if (this.value === 'custom' || this.value === "") {
+                termInput.placeholder = "例如：20";
+                termInput.readOnly = false;
+                dobMaturityInput.required = false; 
+                effectiveDateInput.required = true;
+            }
+        });
+
+        document.getElementById('interval-days-select').addEventListener('change', function() {
+            const intervalInput = document.getElementById('interval-days');
+            if (this.value && !isNaN(parseInt(this.value))) {
+                intervalInput.value = this.value;
+            } else if (this.value === 'custom') {
+                intervalInput.value = ''; // Clear if custom, let user type
+                intervalInput.placeholder = "請輸入自訂天數";
+            } else { // "" selected
+                 intervalInput.value = '14'; // Default back to 14 if "請選擇"
+                 this.value = '14'; // Also update select to 14
+            }
+        });
+
+        document.getElementById('waiting-period-select').addEventListener('change', function() {
+            const waitingInput = document.getElementById('waiting-period');
+            if (this.value && !isNaN(parseInt(this.value))) {
+                waitingInput.value = this.value;
+            } else if (this.value === 'custom') {
+                waitingInput.value = '';
+                waitingInput.placeholder = "請輸入自訂天數";
+            } else {
+                 waitingInput.value = '30'; // Default back to 30 if "請選擇"
+                 this.value = '30'; // Also update select to 30
+            }
+        });
+
+        // --- Grace Period UI Logic ---
+        const paymentTypeGraceRadios = document.querySelectorAll('input[name="payment-type-grace"]');
+        const annualSemiOptionsGraceDiv = document.getElementById('annual-semi-options-grace');
+        const noticeReceivedDateContainerGrace = document.getElementById('notice-received-date-container-grace');
+        const noticeStatusGraceRadios = document.querySelectorAll('input[name="notice-status-grace"]');
+
+        paymentTypeGraceRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.value === 'annual_semiannual') {
+                    annualSemiOptionsGraceDiv.style.display = 'block';
+                    document.querySelector('input[name="notice-status-grace"]:checked').dispatchEvent(new Event('change'));
+                } else {
+                    annualSemiOptionsGraceDiv.style.display = 'none';
+                }
+            });
+        });
+
+        noticeStatusGraceRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                 if (document.getElementById('payment-annual-semiannual').checked && this.value === 'received') {
+                    noticeReceivedDateContainerGrace.style.display = 'block';
+                } else {
+                    noticeReceivedDateContainerGrace.style.display = 'none';
+                }
+            });
+        });
+
+
+        // --- Calculation Functions (Unchanged from v2 for brevity, assume they are correct) ---
+        // 1. 住院日額給付天數計算
+        function calculateHospitalDays() {
+            const startDateStr = document.getElementById('hosp-start-date').value;
+            const endDateStr = document.getElementById('hosp-end-date').value;
+            const calcMethod = document.querySelector('input[name="hosp-calc-method"]:checked').value;
+            const resultEl = 'hosp-result';
+            const errorEl = 'hosp-error';
+
+            const startDate = parseDate(startDateStr);
+            const endDate = parseDate(endDateStr);
+
+            if (!startDate || !endDate) {
+                displayError(errorEl, '請輸入有效的住院和出院日期。');
+                return;
+            }
+            if (endDate < startDate) {
+                displayError(errorEl, '出院日期不能早於住院日期。');
+                return;
+            }
+
+            let days = diffDays(startDate, endDate);
+
+            if (calcMethod === 'include-start-exclude-end') {
+                // diffDays already gives this
+            } else { // include-both
+                days += 1;
+            }
+            days = Math.max(0, days);
+            displayResult(resultEl, `住院天數為： ${days} 天`);
+        }
+
+        // 2. 保單滿期日計算 
+        function calculateMaturityDate() {
+            const effectiveDateStr = document.getElementById('policy-effective-date').value;
+            const dobStr = document.getElementById('dob-maturity').value;
+            const termSelectValue = document.getElementById('policy-term-select').value;
+            let termYearsInput = document.getElementById('policy-term').value;
+            const resultEl = 'maturity-result';
+            const errorEl = 'maturity-error';
+
+            const effectiveDate = parseDate(effectiveDateStr);
+            if (!effectiveDate) {
+                displayError(errorEl, '請輸入有效的保單生效日期。');
+                return;
+            }
+
+            let maturityDate;
+            let resultMessagePrefix = "";
+
+            if (termSelectValue.startsWith('to_age_')) {
+                const dob = parseDate(dobStr);
+                if (!dob) {
+                    displayError(errorEl, '選擇依年齡計算滿期日時，請輸入被保險人出生日期。');
+                    return;
+                }
+                if (effectiveDate < dob) {
+                    displayError(errorEl, '保單生效日期不能早於出生日期。');
+                    return;
+                }
+
+                const targetAge = parseInt(termSelectValue.split('_')[2]); 
+
+                const dateReachesTargetAge = addYears(dob, targetAge);
+                const anniversaryMonth = effectiveDate.getUTCMonth();
+                const anniversaryDay = effectiveDate.getUTCDate();
+                let policyYearStartDateForTargetAge = new Date(Date.UTC(dateReachesTargetAge.getUTCFullYear(), anniversaryMonth, anniversaryDay));
+
+                if (policyYearStartDateForTargetAge < dateReachesTargetAge) {
+                    policyYearStartDateForTargetAge = addYears(policyYearStartDateForTargetAge, 1);
+                }
+                
+                maturityDate = addDays(addYears(policyYearStartDateForTargetAge, 1), -1);
+                resultMessagePrefix = `目標：至 ${targetAge} 足歲之保單年度末\n`;
+
+            } else { 
+                let termYears;
+                if (!termYearsInput && (termSelectValue === "" || termSelectValue === "custom")) {
+                     displayError(errorEl, '請選擇保險期間選項或輸入自訂年期。');
+                     return;
+                }
+                if (termYearsInput) {
+                    termYears = parseInt(termYearsInput, 10);
+                } else if (!isNaN(parseInt(termSelectValue))) { 
+                    termYears = parseInt(termSelectValue, 10);
+                } else {
+                     displayError(errorEl, '請輸入有效的保險期間 (正整數年)。');
+                     return;
+                }
+                
+                if (isNaN(termYears) || termYears <= 0) {
+                    displayError(errorEl, '請輸入有效的保險期間 (正整數年)。');
+                    return;
+                }
+                const anniversaryDate = addYears(effectiveDate, termYears);
+                maturityDate = addDays(anniversaryDate, -1);
+                resultMessagePrefix = `保險期間：${termYears} 年\n`;
+            }
+
+            displayResult(resultEl, `${resultMessagePrefix}保單滿期日為： ${formatDate(maturityDate)} (保障至當日午夜12時)`);
+        }
+
+        // 3. 同一次住院期間認定
+        function checkSameHospitalization() {
+            const dischargeDateStr = document.getElementById('discharge-date').value;
+            const admissionDateStr = document.getElementById('admission-date').value;
+            const intervalDaysInput = document.getElementById('interval-days').value;
+            const resultEl = 'same-hosp-result';
+            const errorEl = 'same-hosp-error';
+
+            const dischargeDate = parseDate(dischargeDateStr);
+            const admissionDate = parseDate(admissionDateStr);
+            const intervalDays = parseInt(intervalDaysInput, 10);
+
+            if (!dischargeDate || !admissionDate || isNaN(intervalDays) || intervalDays <= 0) {
+                displayError(errorEl, '請輸入有效的前次出院日期、下次住院日期和間隔天數約定（正整數）。');
+                return;
+            }
+            if (admissionDate <= dischargeDate) {
+                displayError(errorEl, '下次住院日期必須晚於前次出院日期。');
+                return;
+            }
+            const daysBetween = diffDays(dischargeDate, admissionDate) - 1;
+            if (daysBetween < intervalDays) {
+                displayResult(resultEl, `實際間隔 ${daysBetween} 天，小於約定的 ${intervalDays} 天。\n**視為同一次住院** (仍需確認住院原因是否相同或相關)。`);
+            } else {
+                displayResult(resultEl, `實際間隔 ${daysBetween} 天，未小於(等於或大於)約定的 ${intervalDays} 天。\n**視為不同次住院**。`);
+            }
+        }
+
+        // 4. 等待期結束日計算
+        function calculateWaitingPeriodEnd() {
+            const effectiveDateStr = document.getElementById('wait-effective-date').value;
+            const waitingPeriodInput = document.getElementById('waiting-period').value;
+            const resultEl = 'waiting-period-result';
+            const errorEl = 'waiting-period-error';
+
+            const effectiveDate = parseDate(effectiveDateStr);
+            const waitingPeriod = parseInt(waitingPeriodInput, 10);
+
+            if (!effectiveDate || isNaN(waitingPeriod) || waitingPeriod < 0) {
+                displayError(errorEl, '請輸入有效的生效日期和等待期天數（非負整數）。');
+                return;
+            }
+            if (waitingPeriod === 0) {
+                displayResult(resultEl, `等待期為 0 天，保障自 ${formatDate(effectiveDate)} 零時起生效。`);
+                return;
+            }
+            const waitingPeriodEndDate = addDays(effectiveDate, waitingPeriod - 1);
+            const coverageStartDate = addDays(waitingPeriodEndDate, 1);
+            displayResult(resultEl, `等待期 ${waitingPeriod} 天，至 ${formatDate(waitingPeriodEndDate)} 午夜12時屆滿。\n保障自 ${formatDate(coverageStartDate)} 零時起生效。`);
+        }
+
+        // 5. 寬限期結束日計算
+        function calculateGracePeriodAll() {
+            const dueDateStr = document.getElementById('due-date-grace').value;
+            const paymentType = document.querySelector('input[name="payment-type-grace"]:checked').value;
+            
+            const resultEl = 'grace-period-result';
+            const errorEl = 'grace-period-error';
+
+            const dueDate = parseDate(dueDateStr);
+            if (!dueDate) {
+                displayError(errorEl, '請輸入有效的應繳費日期。');
+                return;
+            }
+
+            let results = `應繳費日期：${formatDate(dueDate)}\n\n`;
+            let errorMessages = [];
+
+            const graceStartMQ = addDays(dueDate, 1);
+            const graceEndMQ = addDays(graceStartMQ, 30 - 1); 
+            results += `【月繳 / 季繳】 (通常無催告)\n`;
+            results += `  寬限期起日: ${formatDate(graceStartMQ)}\n`;
+            results += `  寬限期末日: ${formatDate(graceEndMQ)} (含當日午夜12時)\n\n`;
+
+            results += `【年繳 / 半年繳】\n`;
+            if (paymentType === 'annual_semiannual') {
+                const noticeStatus = document.querySelector('input[name="notice-status-grace"]:checked').value;
+                if (noticeStatus === 'received') {
+                    const noticeDateStr = document.getElementById('notice-date-grace').value;
+                    const noticeDate = parseDate(noticeDateStr);
+                    if (!noticeDate) {
+                        errorMessages.push('年/半年繳選擇「已收到催告」時，請輸入有效的「收到催告通知書日期」。');
+                        results += `  催告情況：已收到催告，但未提供有效日期。\n`;
+                    } else if (noticeDate < dueDate) {
+                         errorMessages.push('「收到催告通知書日期」不應早於「應繳費日期」。');
+                         results += `  催告情況：收到催告日期 (${formatDate(noticeDate)}) 早於應繳費日，資料有誤。\n`;
+                    } else {
+                        const graceStartAS = addDays(noticeDate, 1); 
+                        const graceEndAS = addDays(graceStartAS, 30 - 1); 
+                        results += `  催告情況：已收到催告 (收到日: ${formatDate(noticeDate)})\n`;
+                        results += `  寬限期起日: ${formatDate(graceStartAS)} (催告到達隔日)\n`;
+                        results += `  寬限期末日: ${formatDate(graceEndAS)} (含當日午夜12時)\n`;
+                    }
+                } else { // not_received
+                    results += `  催告情況：未收到催告通知書。\n`;
+                    results += `  <span class="warning-message block mt-1">提醒：依規定，年繳、半年繳保單若保險公司未寄發催告通知書，則停效要件可能不成立。</span>\n`;
+                    const assumedNoticeSentDate = addDays(dueDate, 20); 
+                    const assumedNoticeReceivedDate = addDays(assumedNoticeSentDate, 1); 
+                    const graceStartAS_hypo = addDays(assumedNoticeReceivedDate, 1);
+                    const graceEndAS_hypo = addDays(graceStartAS_hypo, 30 - 1);
+                    results += `  (參考：若假設催告於 ${formatDate(assumedNoticeReceivedDate)} 送達，則寬限期末日為 ${formatDate(graceEndAS_hypo)})\n`;
+                }
+            } else { 
+                 results += `  催告情況：若為年/半年繳保單，需依催告情況判斷。\n`;
+                 results += `  <span class="info-message block mt-1">請選擇「年繳/半年繳」選項以輸入催告詳情。</span>\n`;
+            }
+            results += "\n";
+            
+            if (errorMessages.length > 0) {
+                displayError(errorEl, errorMessages.join('\n'));
+            } else {
+                 document.getElementById(errorEl).textContent = ''; 
+            }
+            displayResult(resultEl, results.trim());
+        }
+
+
+        // 6. 復效申請截止日計算
+        function calculateReinstatementDeadlines() {
+            const suspensionDateStr = document.getElementById('suspension-date-reinstatement').value;
+            const resultEl = 'reinstatement-result';
+            const errorEl = 'reinstatement-error';
+
+            const suspensionDate = parseDate(suspensionDateStr);
+
+            if (!suspensionDate) {
+                displayError(errorEl, '請輸入有效的停效日期。');
+                return;
+            }
+
+            let resultText = `停效日期： ${formatDate(suspensionDate)}\n\n`;
+
+            const unconditionalDeadline = addMonths(suspensionDate, 6); 
+            resultText += `1. 【六個月內無條件復效申請期限】\n`;
+            resultText += `   截止日： ${formatDate(unconditionalDeadline)} (含當日)\n`;
+            resultText += `   說明：於此日期前申請復效，只要繳清停效期間未繳保費及相關費用，保險公司必須無條件接受復效，且不需健康告知。復效於申請隔天零時生效。\n\n`;
+
+            const statutoryDeadline = addYears(suspensionDate, 2);
+            resultText += `2. 【二年內(法定)可申請復效期限】\n`;
+            resultText += `   截止日： ${formatDate(statutoryDeadline)} (含當日)\n`;
+            resultText += `   說明：停效超過六個月至二年內申請復效，保險公司可要求提供健康狀況證明（可保證明），並有權審核是否同意復效。\n\n`;
+            resultText += `提醒：若超過二年 (${formatDate(statutoryDeadline)}) 未申請復效，保單將永久失效。`;
+
+            displayResult(resultEl, resultText);
+        }
+
+
+        // 7. 保險年齡計算
+        function calculateInsuranceAge() {
+            const dobStr = document.getElementById('dob').value;
+            const calcDateStr = document.getElementById('age-calc-date').value;
+            const resultEl = 'insurance-age-result';
+            const errorEl = 'insurance-age-error';
+
+            const dob = parseDate(dobStr);
+            const calcDate = parseDate(calcDateStr);
+
+            if (!dob || !calcDate) {
+                displayError(errorEl, '請輸入有效的出生日期和計算基準日。');
+                return;
+            }
+            if (calcDate < dob) {
+                displayError(errorEl, '計算基準日不能早於出生日期。');
+                return;
+            }
+            const insuranceAge = getInsuranceAge(dob, calcDate);
+            if (isNaN(insuranceAge)) {
+                 displayError(errorEl, '無法計算保險年齡，請檢查輸入日期。');
+                 return;
+            }
+            displayResult(resultEl, `於 ${formatDate(calcDate)} 的保險年齡為： ${insuranceAge} 歲`);
+        }
+
+        // 8. 契約撤銷權截止日計算
+        function calculateCancellationDeadline() {
+            const receivedDateStr = document.getElementById('policy-received-date').value;
+            const resultEl = 'cancellation-result';
+            const errorEl = 'cancellation-error';
+
+            const receivedDate = parseDate(receivedDateStr);
+            if (!receivedDate) {
+                displayError(errorEl, '請輸入有效的保單簽收日期。');
+                return;
+            }
+            const cancellationStartDate = addDays(receivedDate, 1);
+            const deadlineDate = addDays(cancellationStartDate, 9);
+            displayResult(resultEl, `契約撤銷權期間自 ${formatDate(cancellationStartDate)} 起算，至 ${formatDate(deadlineDate)} 午夜12時止 (共10天)。`);
+        }
+
+        // Initialize UI state on load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize dropdowns and default values
+            document.getElementById('policy-term-select').dispatchEvent(new Event('change')); 
+            
+            // Default for Interval Days (Card 3)
+            const intervalSelect = document.getElementById('interval-days-select');
+            const intervalInput = document.getElementById('interval-days');
+            intervalSelect.value = '14'; // Set dropdown to 14
+            intervalInput.value = '14';  // Set input field to 14
+            intervalSelect.dispatchEvent(new Event('change')); // Trigger change if any other logic depends on it
+
+            // Default for Waiting Period (Card 4) - if needed, else handled by its own change listener
+            const waitingSelect = document.getElementById('waiting-period-select');
+            if (waitingSelect.value === "") { // If "請選擇" is the default
+                 // waitingSelect.value = "30"; // Optionally set a default
+                 // document.getElementById('waiting-period').value = "30";
+                 // waitingSelect.dispatchEvent(new Event('change'));
+            } else {
+                // Ensure input field matches dropdown if a value is pre-selected
+                if (waitingSelect.value && !isNaN(parseInt(waitingSelect.value))) {
+                    document.getElementById('waiting-period').value = waitingSelect.value;
+                }
+            }
+            
+            // Initialize Grace Period UI
+            document.querySelector('input[name="payment-type-grace"]:checked').dispatchEvent(new Event('change'));
+            if (document.getElementById('payment-annual-semiannual').checked) {
+                 document.querySelector('input[name="notice-status-grace"]:checked').dispatchEvent(new Event('change'));
+            }
+            
+            // Set initial view mode: default to accordion, open first item
+            const preferredMode = localStorage.getItem('calculatorViewMode') || 'accordion';
+            const activeCardIndex = localStorage.getItem('activeCardIndex');
+
+            if (preferredMode === 'accordion') {
+                if (activeCardIndex === null && calculatorCards.length > 0) {
+                    // No specific card was active, default to opening the first one
+                    localStorage.setItem('activeCardIndex', '0');
+                }
+                setViewMode('accordion'); // This will use activeCardIndex or default to first
+            } else {
+                setViewMode('all');
+            }
+        });
+    </script>
+
+</body>
+</html>
