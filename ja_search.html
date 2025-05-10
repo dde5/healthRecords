@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>裁判書精準查詢</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 使用 Inter 字體 */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* 確保容器在小螢幕上也能有足夠的空間 */
+        .container {
+            max-width: 960px;
+        }
+        /* 隱藏 Radio Button 的原生樣式 */
+        .radio-option input[type="radio"],
+        .checkbox-option input[type="checkbox"] {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+        /* Radio Button 和 Checkbox 的自訂樣式 */
+        .radio-option label,
+        .checkbox-option label {
+            display: inline-block;
+            padding: 4px 8px;
+            border: 1px solid #d1d5db; /* gray-300 */
+            border-radius: 4px; /* rounded-md */
+            cursor: pointer;
+            background-color: #f3f4f6; /* gray-100 */
+            color: #4b5563; /* gray-600 */
+            font-size: 0.875rem; /* text-sm */
+            transition: all 0.2s ease-in-out;
+        }
+        /* 選中時的樣式 */
+        .radio-option input[type="radio"]:checked + label,
+        .checkbox-option input[type="checkbox"]:checked + label {
+            background-color: #3b82f6; /* blue-600 */
+            border-color: #3b82f6; /* blue-600 */
+            color: white;
+        }
+        /* hover 時的樣式 */
+        .radio-option label:hover,
+         .checkbox-option label:hover {
+            background-color: #e5e7eb; /* gray-200 */
+        }
+         /* 特定於 checkbox 的樣式 */
+        .checkbox-option input[type="checkbox"]:checked + label {
+             background-color: #10b981; /* green-500 */
+             border-color: #10b981; /* green-500 */
+             color: white;
+        }
+         .checkbox-option label:hover {
+             background-color: #d1fae5; /* green-100 */
+        }
+         /* 可展開/收合標題樣式 */
+         .collapsible-header {
+             cursor: pointer;
+             padding: 8px 0;
+             border-bottom: 1px solid #e5e7eb; /* gray-200 */
+             margin-bottom: 8px;
+             font-weight: 500; /* medium */
+             color: #4b5563; /* gray-600 */
+             display: flex;
+             justify-content: space-between;
+             align-items: center;
+         }
+         .collapsible-header::after {
+             content: '▼'; /* 向下箭頭 */
+             transition: transform 0.2s ease-in-out;
+         }
+         .collapsible-header.collapsed::after {
+             content: '►'; /* 向右箭頭 */
+         }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 sm:p-8">
+    <div class="container mx-auto bg-white rounded-lg shadow-md p-6 sm:p-8">
+        <h1 class="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6">裁判書精準查詢介面</h1>
+        <p class="text-center text-gray-600 mb-8">請填寫以下欄位以協助您更精準地查詢裁判書。不清楚的欄位可以留空。</p>
+        <p class="text-center text-gray-600 mb-8 text-sm">本介面產生的查詢語法參考司法院法學資料檢索系統之「檢索字詞輔助說明」，並已移除欄位名稱冒號。</p>
+
+        <form id="searchForm" class="space-y-6">
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    關鍵字 (請輸入您想尋找的詞彙，並選擇邏輯關係)
+                </label>
+                <div id="keywordsContainer" class="space-y-4">
+                    <div class="keyword-group flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                        <div class="flex-grow w-full sm:w-auto">
+                            <input type="text" name="keyword" placeholder="請輸入關鍵字"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="flex space-x-2 radio-option keyword-operator hidden">
+                            <input type="radio" id="keyword_op_and_0" name="keyword_op_0" value="&" checked>
+                            <label for="keyword_op_and_0">& (且)</label>
+                            <input type="radio" id="keyword_op_or_0" name="keyword_op_0" value="+">
+                            <label for="keyword_op_or_0">+ (或)</label>
+                        </div>
+                        <button type="button" class="remove-keyword-btn px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            移除
+                        </button>
+                    </div>
+                </div>
+                <button type="button" id="addKeywordBtn" class="mt-4 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    新增關鍵字
+                </button>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    排除關鍵字 (請輸入您不想看到的詞彙，這些詞彙會被排除)
+                </label>
+                <div id="excludeKeywordsContainer" class="space-y-4">
+                    <div class="exclude-keyword-group flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                         <div class="flex-grow w-full sm:w-auto">
+                            <input type="text" name="excludeKeyword" placeholder="請輸入排除關鍵字"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                         <button type="button" class="remove-exclude-keyword-btn px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-500">
+                            移除
+                        </button>
+                    </div>
+                </div>
+                <button type="button" id="addExcludeKeywordBtn" class="mt-4 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    新增排除關鍵字
+                </button>
+            </div>
+
+             <div>
+                <div id="courtsHeader" class="collapsible-header">
+                    法院名稱 (請選擇法院，可多選)
+                </div>
+                 <div id="courtsContent"> <div class="flex space-x-4 mb-2">
+                         <button type="button" id="selectAllCourts" class="px-3 py-1 bg-gray-200 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
+                             全選
+                         </button>
+                         <button type="button" id="deselectAllCourts" class="px-3 py-1 bg-gray-200 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
+                             全不選
+                         </button>
+                     </div>
+                    <div id="courtsList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 checkbox-option">
+                        <div>
+                            <input type="checkbox" id="court_tp" name="court" value="臺灣臺北地方法院">
+                            <label for="court_tp">臺灣臺北地方法院</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="court_ty" name="court" value="臺灣桃園地方法院">
+                            <label for="court_ty">臺灣桃園地方法院</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="court_tc" name="court" value="臺灣臺中地方法院">
+                            <label for="court_tc">臺灣臺中地方法院</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="court_tn" name="court" value="臺灣臺南地方法院">
+                            <label for="court_tn">臺灣臺南地方法院</label>
+                        </div>
+                         <div>
+                            <input type="checkbox" id="court_ks" name="court" value="臺灣高雄地方法院">
+                            <label for="court_ks">臺灣高雄地方法院</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="court_hl" name="court" value="臺灣花蓮地方法院">
+                            <label for="court_hl">臺灣花蓮地方法院</label>
+                        </div>
+                         <div>
+                            <input type="checkbox" id="court_il" name="court" value="臺灣宜蘭地方法院">
+                            <label for="court_il">臺灣宜蘭地方法院</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="court_cl" name="court" value="臺灣彰化地方法院">
+                            <label for="court_cl">臺灣彰化地方法院</label>
+                        </div>
+                         <div>
+                            <input type="checkbox" id="court_nt" name="court" value="臺灣南投地方法院">
+                            <label for="court_nt">臺灣南投地方法院</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="court_yl" name="court" value="臺灣雲林地方法院">
+                            <label for="court_yl">臺灣雲林地方法院</label>
+                        </div>
+                         <div>
+                            <input type="checkbox" id="court_cy" name="court" value="臺灣嘉義地方法院">
+                            <label for="court_cy">臺灣嘉義地方法院</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="court_pt" name="court" value="臺灣屏東地方法院">
+                            <label for="court_pt">臺灣屏東地方法院</label>
+                        </div>
+                         <div>
+                            <input type="checkbox" id="court_tt" name="court" value="臺灣臺東地方法院">
+                            <label for="court_tt">臺灣臺東地方法院</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="court_ph" name="court" value="臺灣澎湖地方法院">
+                            <label for="court_ph">臺灣澎湖地方法院</label>
+                        </div>
+                         <div>
+                            <input type="checkbox" id="court_km" name="court" value="福建金門地方法院">
+                            <label for="court_km">福建金門地方法院</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="court_lc" name="court" value="福建連江地方法院">
+                            <label for="court_lc">福建連江地方法院</label>
+                        </div>
+                         <div>
+                            <input type="checkbox" id="court_hg" name="court" value="臺灣新竹地方法院">
+                            <label for="court_hg">臺灣新竹地方法院</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="court_ml" name="court" value="臺灣苗栗地方法院">
+                            <label for="court_ml">臺灣苗栗地方法院</label>
+                        </div>
+                         <div>
+                            <input type="checkbox" id="court_ch" name="court" value="臺灣橋頭地方法院">
+                            <label for="court_ch">臺灣橋頭地方法院</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="court_th" name="court" value="臺灣士林地方法院">
+                            <label for="court_th">臺灣士林地方法院</label>
+                        </div>
+                         <div>
+                            <input type="checkbox" id="court_ntpc" name="court" value="臺灣新北地方法院">
+                            <label for="court_ntpc">臺灣新北地方法院</label>
+                        </div>
+                         <div>
+                            <input type="checkbox" id="court_high" name="court" value="臺灣高等法院">
+                            <label for="court_high">臺灣高等法院</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="court_high_tc" name="court" value="臺灣高等法院臺中分院">
+                            <label for="court_high_tc">臺灣高等法院臺中分院</label>
+                        </div>
+                         <div>
+                            <input type="checkbox" id="court_high_tn" name="court" value="臺灣高等法院臺南分院">
+                            <label for="court_high_tn">臺灣高等法院臺南分院</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="court_high_ks" name="court" value="臺灣高等法院高雄分院">
+                            <label for="court_high_ks">臺灣高等法院高雄分院</label>
+                        </div>
+                         <div>
+                            <input type="checkbox" id="court_high_hl" name="court" value="臺灣高等法院花蓮分院">
+                            <label for="court_high_hl">臺灣高等法院花蓮分院</label>
+                        </div>
+                         <div>
+                            <input type="checkbox" id="court_supreme" name="court" value="最高法院">
+                            <label for="court_supreme">最高法院</label>
+                        </div>
+                         <div>
+                            <input type="checkbox" id="court_admin_high" name="court" value="最高行政法院">
+                            <label for="court_admin_high">最高行政法院</label>
+                        </div>
+                         <div>
+                            <input type="checkbox" id="court_admin_tp" name="court" value="臺北高等行政法院">
+                            <label for="court_admin_tp">臺北高等行政法院</label>
+                        </div>
+                         <div>
+                            <input type="checkbox" id="court_admin_tc" name="court" value="臺中高等行政法院">
+                            <label for="court_admin_tc">臺中高等行政法院</label>
+                        </div>
+                         <div>
+                            <input type="checkbox" id="court_admin_ks" name="court" value="高雄高等行政法院">
+                            <label for="court_admin_ks">高雄高等行政法院</label>
+                        </div>
+                         <div>
+                            <input type="checkbox" id="court_discipline" name="court" value="公務員懲戒委員會">
+                            <label for="court_discipline">公務員懲戒委員會</label>
+                        </div>
+                         <div>
+                            <input type="checkbox" id="court_intellectual" name="court" value="智慧財產法院">
+                            <label for="court_intellectual">智慧財產法院</label>
+                        </div>
+                         <div>
+                            <input type="checkbox" id="court_constitutional" name="court" value="憲法法庭">
+                            <label for="court_constitutional">憲法法庭</label>
+                        </div>
+                        </div>
+                     <div class="flex space-x-4 mt-2 radio-option">
+                         <label class="block text-sm font-medium text-gray-700">
+                            多選法院關係:
+                         </label>
+                         <input type="radio" id="court_op_and" name="court_op" value="&">
+                         <label for="court_op_and">& (且)</label>
+                         <input type="radio" id="court_op_or" name="court_op" value="+" checked>
+                         <label for="court_op_or">+ (或)</label>
+                     </div>
+                 </div>
+            </div>
+
+
+            <div>
+                <div id="caseTypesHeader" class="collapsible-header">
+                    案件類別 (請選擇類別，可多選)
+                </div>
+                 <div id="caseTypesContent"> <div class="flex space-x-4 mb-2">
+                         <button type="button" id="selectAllCaseTypes" class="px-3 py-1 bg-gray-200 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
+                             全選
+                         </button>
+                         <button type="button" id="deselectAllCaseTypes" class="px-3 py-1 bg-gray-200 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
+                             全不選
+                         </button>
+                     </div>
+                    <div id="caseTypesList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 checkbox-option">
+                         <div>
+                             <input type="checkbox" id="caseType_civil" name="caseType" value="民事">
+                             <label for="caseType_civil">民事</label>
+                         </div>
+                         <div>
+                             <input type="checkbox" id="caseType_criminal" name="caseType" value="刑事">
+                             <label for="caseType_criminal">刑事</label>
+                         </div>
+                         <div>
+                             <input type="checkbox" id="caseType_admin" name="caseType" value="行政">
+                             <label for="caseType_admin">行政</label>
+                         </div>
+                         <div>
+                             <input type="checkbox" id="caseType_discipline" name="caseType" value="公懲">
+                             <label for="caseType_discipline">公懲</label>
+                         </div>
+                         <div>
+                             <input type="checkbox" id="caseType_intellectual" name="caseType" value="智財">
+                             <label for="caseType_intellectual">智財</label>
+                         </div>
+                         <div>
+                             <input type="checkbox" id="caseType_election" name="caseType" value="選舉">
+                             <label for="caseType_election">選舉</label>
+                         </div>
+                         <div>
+                             <input type="checkbox" id="caseType_juvenile" name="caseType" value="少年">
+                             <label for="caseType_juvenile">少年</label>
+                         </div>
+                         <div>
+                             <input type="checkbox" id="caseType_family" name="caseType" value="家事">
+                             <label for="caseType_family">家事</label>
+                         </div>
+                         <div>
+                             <input type="checkbox" id="caseType_labor" name="caseType" value="勞動">
+                             <label for="caseType_labor">勞動</label>
+                         </div>
+                         <div>
+                             <input type="checkbox" id="caseType_other" name="caseType" value="其他">
+                             <label for="caseType_other">其他</label>
+                         </div>
+                    </div>
+                     <div class="flex space-x-4 mt-2 radio-option">
+                         <label class="block text-sm font-medium text-gray-700">
+                            多選類別關係:
+                         </label>
+                         <input type="radio" id="caseType_op_and" name="caseType_op" value="&" checked>
+                         <label for="caseType_op_and">& (且)</label>
+                         <input type="radio" id="caseType_op_or" name="caseType_op" value="+">
+                         <label for="caseType_op_or">+ (或)</label>
+                     </div>
+                 </div>
+            </div>
+
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">
+                        裁判日期 從
+                    </label>
+                    <input type="date" id="startDate" name="startDate"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label for="endDate" class="block text-sm font-medium text-gray-700 mb-1">
+                        裁判日期 到
+                    </label>
+                    <input type="date" id="endDate" name="endDate"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+            </div>
+
+            <div>
+                <label for="caseNumber" class="block text-sm font-medium text-gray-700 mb-1">
+                    案號/字號 (例如：110年度台上字第1234號 或 105訴123)
+                </label>
+                <input type="text" id="caseNumber" name="caseNumber" placeholder="請輸入案號或字號"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div>
+                <label for="searchScope" class="block text-sm font-medium text-gray-700 mb-1">
+                    查詢範圍 (進階選項，可指定關鍵字出現在裁判書的哪個部分)
+                </label>
+                <select id="searchScope" name="searchScope"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">全文檢索</option>
+                    <option value="主文">主文</option>
+                    <option value="事實">事實</option>
+                    <option value="理由">理由</option>
+                    <option value="附件">附件</option>
+                    <option value="相關法條">相關法條</option>
+                </select>
+            </div>
+
+            <div>
+                <button type="submit"
+                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    產生查詢條件
+                </button>
+            </div>
+        </form>
+
+        <div id="generatedQuery" class="mt-8 p-4 bg-gray-50 rounded-md border border-gray-200 hidden">
+            <h2 class="text-lg font-semibold text-gray-800 mb-2">產生的查詢條件文字 (您可以複製此文字到裁判書查詢系統)</h2>
+            <div class="flex items-center space-x-2">
+                <p id="queryText" class="text-gray-700 break-all flex-grow"></p>
+                <button id="copyButton" class="px-3 py-1 bg-gray-200 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
+                    複製並前往查詢系統
+                </button>
+            </div>
+            <p id="copyMessage" class="text-sm text-green-600 mt-2 hidden">已複製到剪貼簿！正在開啟查詢系統...</p>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript 處理動態新增/移除關鍵字和排除關鍵字輸入框
+        const keywordsContainer = document.getElementById('keywordsContainer');
+        const addKeywordBtn = document.getElementById('addKeywordBtn');
+        let keywordCount = 1; // 用於命名 radio button group
+
+        function createKeywordInput(index) {
+            const div = document.createElement('div');
+            div.classList.add('keyword-group', 'flex', 'flex-col', 'sm:flex-row', 'items-start', 'sm:items-center', 'space-y-2', 'sm:space-y-0', 'sm:space-x-4');
+            div.innerHTML = `
+                <div class="flex-grow w-full sm:w-auto">
+                    <input type="text" name="keyword" placeholder="請輸入關鍵字"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="flex space-x-2 radio-option keyword-operator">
+                    <input type="radio" id="keyword_op_and_${index}" name="keyword_op_${index}" value="&" checked>
+                    <label for="keyword_op_and_${index}">& (且)</label>
+                    <input type="radio" id="keyword_op_or_${index}" name="keyword_op_${index}" value="+">
+                    <label for="keyword_op_or_${index}">+ (或)</label>
+                </div>
+                <button type="button" class="remove-keyword-btn px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    移除
+                </button>
+            `;
+
+            // 添加移除按鈕的事件監聽器
+            div.querySelector('.remove-keyword-btn').addEventListener('click', function() {
+                div.remove();
+                 // 重新檢查是否需要隱藏第一個關鍵字的 operator
+                updateKeywordOperatorVisibility();
+            });
+
+            return div;
+        }
+
+        addKeywordBtn.addEventListener('click', function() {
+            keywordsContainer.appendChild(createKeywordInput(keywordCount));
+            keywordCount++;
+             // 顯示第一個關鍵字的 operator
+            updateKeywordOperatorVisibility();
+        });
+
+        // 函數：根據關鍵字數量顯示/隱藏第一個關鍵字的 operator
+        function updateKeywordOperatorVisibility() {
+            const keywordGroups = keywordsContainer.querySelectorAll('.keyword-group');
+            if (keywordGroups.length > 0) {
+                // 隱藏第一個關鍵字的 operator
+                const firstOperator = keywordGroups[0].querySelector('.keyword-operator');
+                if (firstOperator) {
+                    firstOperator.classList.add('hidden');
+                }
+
+                 // 顯示後續關鍵字的 operator
+                for(let i = 1; i < keywordGroups.length; i++) {
+                     const operator = keywordGroups[i].querySelector('.keyword-operator');
+                     if (operator) {
+                        operator.classList.remove('hidden');
+                     }
+                }
+            }
+        }
+
+        // 初始載入時檢查
+        updateKeywordOperatorVisibility();
+
+
+        const excludeKeywordsContainer = document.getElementById('excludeKeywordsContainer');
+        const addExcludeKeywordBtn = document.getElementById('addExcludeKeywordBtn');
+
+        function createExcludeKeywordInput() {
+            const div = document.createElement('div');
+            div.classList.add('exclude-keyword-group', 'flex', 'flex-col', 'sm:flex-row', 'items-start', 'sm:items-center', 'space-y-2', 'sm:space-y-0', 'sm:space-x-4');
+            div.innerHTML = `
+                <div class="flex-grow w-full sm:w-auto">
+                    <input type="text" name="excludeKeyword" placeholder="請輸入排除關鍵字"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                 <button type="button" class="remove-exclude-keyword-btn px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-500">
+                    移除
+                </button>
+            `;
+
+            // 添加移除按鈕的事件監聽器
+            div.querySelector('.remove-exclude-keyword-btn').addEventListener('click', function() {
+                div.remove();
+            });
+
+            return div;
+        }
+
+        addExcludeKeywordBtn.addEventListener('click', function() {
+            excludeKeywordsContainer.appendChild(createExcludeKeywordInput());
+        });
+
+         // 為初始的移除按鈕添加事件監聽器 (修正: 確保元素存在再添加監聽器)
+        const initialRemoveExcludeBtn = excludeKeywordsContainer.querySelector('.exclude-keyword-group .remove-exclude-keyword-btn'); // 修正選擇器
+        if (initialRemoveExcludeBtn) {
+             initialRemoveExcludeBtn.addEventListener('click', function() {
+                 // 找到最近的 exclude-keyword-group 並移除
+                 this.closest('.exclude-keyword-group').remove();
+             });
+        }
+
+        // JavaScript 處理法院名稱列表的展開/收合
+        const courtsHeader = document.getElementById('courtsHeader');
+        const courtsContent = document.getElementById('courtsContent');
+        courtsHeader.addEventListener('click', function() {
+            courtsContent.classList.toggle('hidden');
+            courtsHeader.classList.toggle('collapsed');
+        });
+         // 初始載入時移除 collapsed 類別，讓其預設展開
+        courtsHeader.classList.remove('collapsed');
+
+
+        // JavaScript 處理法院名稱全選/全不選
+        const selectAllCourtsBtn = document.getElementById('selectAllCourts');
+        const deselectAllCourtsBtn = document.getElementById('deselectAllCourts');
+        const courtCheckboxes = document.querySelectorAll('#courtsList input[type="checkbox"]');
+
+        selectAllCourtsBtn.addEventListener('click', function() {
+            courtCheckboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        });
+
+        deselectAllCourtsBtn.addEventListener('click', function() {
+            courtCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        });
+
+         // JavaScript 處理案件類別列表的展開/收合
+        const caseTypesHeader = document.getElementById('caseTypesHeader');
+        const caseTypesContent = document.getElementById('caseTypesContent');
+        caseTypesHeader.addEventListener('click', function() {
+            caseTypesContent.classList.toggle('hidden');
+            caseTypesHeader.classList.toggle('collapsed');
+        });
+         // 初始載入時移除 collapsed 類別，讓其預設展開
+        caseTypesHeader.classList.remove('collapsed');
+
+
+        // JavaScript 處理案件類別全選/全不選
+        const selectAllCaseTypesBtn = document.getElementById('selectAllCaseTypes');
+        const deselectAllCaseTypesBtn = document.getElementById('deselectAllCaseTypes');
+        const caseTypeCheckboxes = document.querySelectorAll('#caseTypesList input[type="checkbox"]');
+
+        selectAllCaseTypesBtn.addEventListener('click', function() {
+            caseTypeCheckboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        });
+
+        deselectAllCaseTypesBtn.addEventListener('click', function() {
+            caseTypeCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        });
+
+
+        // JavaScript 處理表單提交和生成查詢文字
+        document.getElementById('searchForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // 阻止表單默認提交
+
+            // --- 偵錯：開始讀取輸入值 ---
+            console.log("--- 開始產生查詢條件 ---");
+
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const caseNumber = document.getElementById('caseNumber').value.trim();
+            const searchScope = document.getElementById('searchScope').value;
+
+            console.log("讀取到的欄位值:", {
+                startDate,
+                endDate,
+                caseNumber,
+                searchScope
+            });
+            // --- 偵錯：讀取輸入值結束 ---
+
+
+            let queryParts = [];
+            let keywordTerms = [];
+            let excludeKeywordTerms = [];
+            let selectedCourts = [];
+            let selectedCaseTypes = [];
+
+            // 處理關鍵字輸入
+            keywordsContainer.querySelectorAll('.keyword-group').forEach((group, index) => {
+                const keywordInput = group.querySelector('input[name="keyword"]');
+                const selectedOperatorInput = group.querySelector(`input[name="keyword_op_${index}"]:checked`);
+
+                const keyword = keywordInput.value.trim();
+                if (keyword) {
+                    const operator = index === 0 ? '' : (selectedOperatorInput ? selectedOperatorInput.value : '&');
+                    keywordTerms.push({ term: keyword, operator: operator });
+                }
+            });
+
+            console.log("處理後的關鍵字詞:", keywordTerms); // --- 偵錯輸出 ---
+
+
+             // 處理排除關鍵字輸入
+            excludeKeywordsContainer.querySelectorAll('.exclude-keyword-group').forEach(group => {
+                const excludeKeywordInput = group.querySelector('input[name="excludeKeyword"]');
+                const excludeKeyword = excludeKeywordInput.value.trim();
+                if (excludeKeyword) {
+                    excludeKeywordTerms.push(excludeKeyword);
+                }
+            });
+
+            console.log("處理後的排除關鍵字詞:", excludeKeywordTerms); // --- 偵錯輸出 ---
+
+            // 處理選定的法院名稱
+            courtCheckboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    selectedCourts.push(checkbox.value);
+                }
+            });
+            const courtOperator = document.querySelector('input[name="court_op"]:checked').value;
+
+            console.log("選定的法院:", selectedCourts); // --- 偵錯輸出 ---
+            console.log("法院邏輯關係:", courtOperator); // --- 偵錯輸出 ---
+
+             // 處理選定的案件類別
+            caseTypeCheckboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    selectedCaseTypes.push(checkbox.value);
+                }
+            });
+            const caseTypeOperator = document.querySelector('input[name="caseType_op"]:checked').value;
+
+            console.log("選定的案件類別:", selectedCaseTypes); // --- 偵錯輸出 ---
+            console.log("案件類別邏輯關係:", caseTypeOperator); // --- 偵錯輸出 ---
+
+
+            // 組裝關鍵字查詢語句 (不含排除關鍵字)
+            let keywordQueryString = '';
+            if (keywordTerms.length > 0) {
+                 let tempKeywordParts = [];
+                 keywordTerms.forEach((item, index) => {
+                     if (index > 0) {
+                         tempKeywordParts.push(item.operator);
+                     }
+                     tempKeywordParts.push(item.term);
+                 });
+
+                 keywordQueryString = tempKeywordParts.join('');
+
+                 if (keywordTerms.length > 1 || keywordQueryString.includes('&') || keywordQueryString.includes('+')) {
+                      keywordQueryString = `(${keywordQueryString})`;
+                 }
+            }
+
+            console.log("組裝後的關鍵字查詢語句 (未應用範圍):", keywordQueryString); // --- 偵錯輸出 ---
+
+
+            // 應用查詢範圍 (如果指定了範圍且有關鍵字)
+            let scopedKeywordPart = '';
+            if (searchScope && keywordQueryString) {
+                 // 將查詢範圍和關鍵字組合語句用空格分隔，移除冒號
+                 scopedKeywordPart = `${searchScope} ${keywordQueryString}`;
+                 queryParts.push(scopedKeywordPart);
+            } else if (keywordQueryString) {
+                 // 沒有指定範圍，直接加入關鍵字組合語句
+                 queryParts.push(keywordQueryString);
+            }
+
+            console.log("加入範圍後的關鍵字部分:", queryParts); // --- 偵錯輸出 ---
+
+
+            // 加入法院名稱 (根據多選和邏輯關係組裝，不帶欄位名稱)
+            if (selectedCourts.length > 0) {
+                 const courtQueryString = selectedCourts.join(courtOperator);
+                 if (selectedCourts.length > 1) {
+                      queryParts.push(`(${courtQueryString})`); // 多個法院用括號包起來
+                 } else {
+                      queryParts.push(courtQueryString); // 單個法院直接加入
+                 }
+            }
+             console.log("加入法院後的部分:", queryParts); // --- 偵錯輸出 ---
+
+            // 加入案件類別 (根據多選和邏輯關係組裝，不帶欄位名稱)
+             if (selectedCaseTypes.length > 0) {
+                 const caseTypeQueryString = selectedCaseTypes.join(caseTypeOperator);
+                 if (selectedCaseTypes.length > 1) {
+                      queryParts.push(`(${caseTypeQueryString})`); // 多個類別用括號包起來
+                 } else {
+                      queryParts.push(caseTypeQueryString); // 單個類別直接加入
+                 }
+            }
+             console.log("加入案件類別後的部分:", queryParts); // --- 偵錯輸出 ---
+
+
+            // 處理日期範圍 (保留欄位名稱和空格)
+            if (startDate && endDate) {
+                queryParts.push(`裁判日期 ${startDate} TO ${endDate}`);
+            } else if (startDate) {
+                 queryParts.push(`裁判日期 ${startDate} TO *`);
+            } else if (endDate) {
+                 queryParts.push(`裁判日期 * TO ${endDate}`);
+            }
+             console.log("加入日期後的部分:", queryParts); // --- 偵錯輸出 ---
+
+
+            // 處理案號/字號 (保留欄位名稱和空格)
+            if (caseNumber) {
+                queryParts.push(`案號/字號 ${caseNumber}`);
+            }
+             console.log("加入案號/字號後的部分:", queryParts); // --- 偵錯輸出 ---
+
+             // 加入排除關鍵字 (放在最後)
+            if (excludeKeywordTerms.length > 0) {
+                 queryParts.push(excludeKeywordTerms.map(term => `-${term}`).join(' '));
+            }
+
+            console.log("加入排除關鍵字後的部分:", queryParts); // --- 偵錯輸出 ---
+
+
+            // 將所有部分用 & 連接 (如果有多個部分)
+            // 過濾掉空字串，避免產生不必要的 '&'
+            const finalQuery = queryParts.filter(part => part.trim() !== '').join(' & ');
+
+            console.log("最終產生的查詢語句:", finalQuery); // --- 偵錯輸出 ---
+            console.log("--- 產生查詢條件結束 ---");
+
+
+            const queryTextElement = document.getElementById('queryText');
+            const generatedQueryDiv = document.getElementById('generatedQuery');
+
+            if (finalQuery.trim()) { // 檢查是否產生了有效的查詢語句
+                queryTextElement.textContent = finalQuery;
+                generatedQueryDiv.classList.remove('hidden');
+            } else {
+                queryTextElement.textContent = '請至少輸入一個查詢條件。';
+                generatedQueryDiv.classList.remove('hidden');
+            }
+        });
+
+        // JavaScript 處理複製按鈕
+        document.getElementById('copyButton').addEventListener('click', function() {
+            const queryTextElement = document.getElementById('queryText');
+            const textToCopy = queryTextElement.textContent;
+            const searchSystemUrl = 'https://judgment.judicial.gov.tw/FJUD/default.aspx'; // 裁判書查詢系統網址
+
+            // 使用 Clipboard API 複製文字
+            navigator.clipboard.writeText(textToCopy).then(function() {
+                // 複製成功
+                const copyMessage = document.getElementById('copyMessage');
+                copyMessage.classList.remove('hidden');
+
+                // 延遲一段時間後開啟新視窗並隱藏提示訊息
+                setTimeout(() => {
+                    window.open(searchSystemUrl, '_blank'); // 在新分頁開啟網頁
+                    copyMessage.classList.add('hidden');
+                }, 1000); // 1秒後開啟新視窗
+            }).catch(function(err) {
+                // 複製失敗
+                console.error('無法複製文字: ', err);
+                // 可以考慮在這裡給用戶一個失敗提示
+            });
+        });
+    </script>
+</body>
+</html>
