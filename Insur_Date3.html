@@ -350,6 +350,10 @@
                 <button onclick="calculateWaitingPeriodEnd()">計算等待期結束日</button>
                 <div id="waiting-period-result" class="result"></div>
                 <div id="waiting-period-error" class="error-message"></div>
+				<div class="note">
+                    提醒：按法令、審判或法律行為所定之期日及期間，除有特別訂定外，其計算依本章之規定；以日、星期、月或年定期間者，其始日不算入，民法第119條、第120條第2項定有明文。<br>又按保險法對於如何計算期間之方法別無規定，仍應適用民法第119條、第120條第2項始日不算入之規定（最高法院93年度台上字第1451號判決意旨參照）。<br><br>
+                    原文網址：<a href="https://judgment.judicial.gov.tw/LAW_Mobile_FJUD/FJUD/data.aspx?ty=JD&id=PCDV,112%2c%e4%bf%9d%e9%9a%aa%e7%b0%a1%e4%b8%8a%2c3%2c20240513%2c1" target="_blank">臺灣新北地方法院 112 年度 保險簡上 字第 3 號判決(113.05.13)</a>
+                </div>
             </div>
         </div>
 
@@ -904,7 +908,7 @@
                 displayResult(resultEl, `等待期為 0 天，保障自 ${formatDate(effectiveDate)} 零時起生效。`);
                 return;
             }
-            const waitingPeriodEndDate = addDays(effectiveDate, waitingPeriod - 1);
+            const waitingPeriodEndDate = addDays(effectiveDate, waitingPeriod);
             const coverageStartDate = addDays(waitingPeriodEndDate, 1);
             displayResult(resultEl, `等待期 ${waitingPeriod} 天，至 ${formatDate(waitingPeriodEndDate)} 午夜12時屆滿。\n保障自 ${formatDate(coverageStartDate)} 零時起生效。`);
         }
