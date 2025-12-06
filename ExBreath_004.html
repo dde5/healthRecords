@@ -7,6 +7,7 @@
     <style>
         :root {
             --primary-gold: #D4AF37;
+            --gold-dim: #8a7122;
             --white-glow: #ffffff;
             --bg-color: #000000;
             --card-bg: #111;
@@ -27,7 +28,7 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
             overflow-y: auto; 
             overflow-x: hidden;
         }
@@ -36,7 +37,7 @@
             width: 100%;
             max-width: 400px;
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             z-index: 10;
         }
 
@@ -44,13 +45,15 @@
             color: var(--primary-gold);
             font-weight: 300;
             letter-spacing: 4px;
-            margin: 0 0 15px 0;
+            margin: 0 0 10px 0;
             font-size: 1.4rem;
         }
 
+        /* 呼吸法選擇 */
         .selector-wrapper {
             position: relative;
             width: 100%;
+            margin-bottom: 10px;
         }
 
         select {
@@ -67,6 +70,44 @@
             cursor: pointer;
         }
 
+        /* 時間長度快選區 (新功能) */
+        .duration-control {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .duration-label {
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .duration-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 5px;
+        }
+
+        .time-btn {
+            flex: 1;
+            background: #111;
+            border: 1px solid #333;
+            color: #888;
+            padding: 8px 0;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .time-btn.active {
+            background: var(--primary-gold);
+            color: #000;
+            border-color: var(--primary-gold);
+            font-weight: bold;
+        }
+
         /* 自訂輸入區 */
         .custom-inputs {
             display: none;
@@ -76,13 +117,13 @@
             padding: 10px;
             border-radius: 8px;
             border: 1px dashed #444;
-            margin-top: 10px;
+            margin-top: 5px;
         }
         .custom-inputs.show { display: grid; }
         .input-group label { font-size: 0.7rem; color: #888; display: block; text-align: center; }
         .input-group input { width: 100%; background: #000; border: 1px solid #555; color: var(--primary-gold); text-align: center; padding: 6px; border-radius: 4px; }
 
-        /* 視覺舞台 (SVG) */
+        /* 視覺舞台 */
         .visual-stage {
             position: relative;
             width: 300px;
@@ -90,7 +131,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 20px 0;
+            margin: 10px 0;
             flex-shrink: 0; 
         }
 
@@ -134,7 +175,7 @@
             will-change: transform;
         }
 
-        /* 中央資訊 (z-index 最高) */
+        /* 中央資訊 */
         .center-info {
             position: absolute;
             width: 100%;
@@ -169,6 +210,20 @@
             border-radius: 4px;
         }
 
+        /* 總時間顯示 */
+        .total-timer-display {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 10px;
+            font-family: monospace;
+            letter-spacing: 1px;
+        }
+        .total-timer-display span {
+            color: var(--primary-gold);
+            font-weight: bold;
+        }
+
+        /* 控制面板 */
         .controls {
             width: 100%;
             max-width: 400px;
@@ -223,7 +278,6 @@
             white-space: pre-line;
         }
 
-        /* 防休眠隱藏影片 */
         #wakeLockVideo {
             position: absolute; width: 1px; height: 1px; opacity: 0.01; pointer-events: none; top: 0; left: 0;
         }
@@ -233,6 +287,7 @@
 
     <header>
         <h1>AHO BREATH</h1>
+        
         <div class="selector-wrapper">
             <select id="breathSelector">
                 <option value="box">方塊呼吸法 (Box Breathing)</option>
@@ -243,6 +298,19 @@
                 <option value="humming">蜂鳴呼吸法 (Humming)</option>
             </select>
         </div>
+
+        <!-- 訓練時長快選 -->
+        <div class="duration-control">
+            <div class="duration-label">練習長度</div>
+            <div class="duration-buttons" id="durationBtns">
+                <button class="time-btn" data-min="1">1分</button>
+                <button class="time-btn" data-min="3">3分</button>
+                <button class="time-btn active" data-min="5">5分</button>
+                <button class="time-btn" data-min="10">10分</button>
+                <button class="time-btn" data-min="0">無限</button>
+            </div>
+        </div>
+
         <div class="custom-inputs" id="customPanel">
             <div class="input-group"><label>吸氣</label><input type="number" id="cIn" value="4"></div>
             <div class="input-group"><label>閉氣</label><input type="number" id="cH1" value="4"></div>
@@ -283,6 +351,10 @@
         </div>
     </div>
 
+    <div class="total-timer-display" id="totalTimerDisplay">
+        剩餘時間: <span>5:00</span>
+    </div>
+
     <div class="controls">
         <div class="options-bar">
             <label class="toggle-option"><input type="checkbox" id="voiceToggle" checked> 語音</label>
@@ -299,7 +371,6 @@
         <div id="infoContent" class="content"></div>
     </div>
 
-    <!-- 防休眠影片 -->
     <video id="wakeLockVideo" playsinline muted loop>
         <source src="data:video/mp4;base64,AAAAHGZ0eXBNNEVAAAAAAAAAAAEAAACgYW1vbQAAAAAAAAAAAAAAAAAAAABtb292AAAAbG12aGQAAAAA6a2gAAAAAAHAAACaAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKgbWRhdAAAAAAAAAAAAAAA" type="video/mp4">
     </video>
@@ -331,12 +402,7 @@
                 effects: ["fill", "hold-full", "drain", "hold-empty"],
                 desc: `💡進階使用者的自由設定模式。
 
-您可以根據自己的肺活量與訓練需求，在上方輸入框調整：
-- 吸氣時間
-- 閉氣（充盈）時間
-- 吐氣時間
-- 閉氣（排空）時間
-
+您可以根據自己的肺活量與訓練需求，在上方輸入框調整秒數。
 點擊「開始」後將依照您的設定進行循環。`
             },
             "478": {
@@ -351,9 +417,7 @@
 1️⃣ 坐或躺下，舌尖頂住上顎。
 2️⃣ 鼻子吸氣 4 秒。
 3️⃣ 閉氣 7 秒。
-4️⃣ 嘴巴吐氣 8 秒（發出「嘶」聲）。
-
-建議適合考試前或睡前使用。`
+4️⃣ 嘴巴吐氣 8 秒（發出「嘶」聲）。`
             },
             diaphragm: {
                 title: "腹式呼吸法 (Diaphragmatic)",
@@ -414,7 +478,9 @@
             stopBottom: document.getElementById('stopBottom'),
             video: document.getElementById('wakeLockVideo'),
             voiceToggle: document.getElementById('voiceToggle'),
-            soundToggle: document.getElementById('soundToggle')
+            soundToggle: document.getElementById('soundToggle'),
+            totalTimer: document.getElementById('totalTimerDisplay'),
+            timeBtns: document.querySelectorAll('.time-btn')
         };
 
         let isRunning = false;
@@ -422,8 +488,30 @@
         let audioCtx = null;
         let currentKey = 'box';
         let wakeLock = null;
+        
+        // 總時間設定 (預設5分鐘)
+        let totalDurationMinutes = 5; 
+        let sessionStartTime = 0;
 
         loadPreset('box');
+        updateTotalTimerDisplay(totalDurationMinutes * 60);
+
+        // 事件：時間選擇
+        ui.timeBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                if(isRunning) return; // 執行中不能換時間
+                // UI 切換
+                ui.timeBtns.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                
+                // 設定數值
+                totalDurationMinutes = parseInt(e.target.dataset.min);
+                
+                // 更新顯示
+                const totalSecs = totalDurationMinutes * 60;
+                updateTotalTimerDisplay(totalSecs);
+            });
+        });
 
         ui.select.addEventListener('change', (e) => {
             if(isRunning) stop();
@@ -436,7 +524,7 @@
             start();
         });
 
-        ui.stop.addEventListener('click', stop);
+        ui.stop.addEventListener('click', () => stop(false));
 
         document.addEventListener("visibilitychange", async () => {
             if (document.visibilityState === "visible" && isRunning) {
@@ -468,6 +556,7 @@
         async function start() {
             if(isRunning) return;
             isRunning = true;
+            sessionStartTime = performance.now();
 
             if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if(audioCtx.state === 'suspended') audioCtx.resume();
@@ -476,13 +565,16 @@
             ui.stop.disabled = false;
             ui.select.disabled = true;
             ui.customPanel.style.pointerEvents = 'none';
+            // 鎖定時間按鈕
+            ui.timeBtns.forEach(b => b.style.pointerEvents = 'none');
+            
             ui.dot.style.opacity = 1;
             ui.lung.style.opacity = 1;
 
             runLoop();
         }
 
-        function stop() {
+        function stop(finished = false) {
             isRunning = false;
             cancelAnimationFrame(animationFrame);
             window.speechSynthesis.cancel();
@@ -494,8 +586,15 @@
             ui.stop.disabled = true;
             ui.select.disabled = false;
             ui.customPanel.style.pointerEvents = 'auto';
+            ui.timeBtns.forEach(b => b.style.pointerEvents = 'auto');
 
             resetState();
+
+            if (finished) {
+                ui.action.innerText = "COMPLETE";
+                ui.timer.innerText = "";
+                playCompleteSound();
+            }
         }
 
         function resetState() {
@@ -508,6 +607,13 @@
             
             const pt = ui.track.getPointAtLength(0);
             updateDot(pt);
+            
+            // 重置總時間顯示
+            if(totalDurationMinutes === 0) {
+                 updateTotalTimerDisplay(0, true);
+            } else {
+                 updateTotalTimerDisplay(totalDurationMinutes * 60);
+            }
         }
 
         async function requestWakeLock() {
@@ -526,8 +632,21 @@
                 const effect = data.effects[phaseIdx];
 
                 await runPhase(duration, action, effect, phaseIdx, data);
+                
+                // 檢查是否時間到
+                if (checkTotalTimeUp()) {
+                    stop(true);
+                    break;
+                }
+                
                 phaseIdx = (phaseIdx + 1) % data.cycle.length;
             }
+        }
+
+        function checkTotalTimeUp() {
+            if (totalDurationMinutes === 0) return false; // 無限模式
+            const elapsed = (performance.now() - sessionStartTime) / 1000;
+            return elapsed >= (totalDurationMinutes * 60);
         }
 
         function runPhase(duration, action, effect, idx, data) {
@@ -546,6 +665,21 @@
                 function frame(now) {
                     if(!isRunning) { resolve(); return; }
 
+                    // 1. 計算總時間
+                    const sessionElapsed = (now - sessionStartTime) / 1000;
+                    if (totalDurationMinutes > 0) {
+                        const totalRemaining = (totalDurationMinutes * 60) - sessionElapsed;
+                        updateTotalTimerDisplay(totalRemaining);
+                        if (totalRemaining <= 0) {
+                            resolve(); // 結束此階段，讓 runLoop 抓到時間到
+                            return;
+                        }
+                    } else {
+                        // 無限模式顯示已過時間
+                        updateTotalTimerDisplay(sessionElapsed, true);
+                    }
+
+                    // 2. 計算階段時間
                     const elapsed = (now - startTime) / 1000;
                     const progress = Math.min(elapsed / duration, 1);
                     const remaining = Math.ceil(duration - elapsed);
@@ -576,6 +710,20 @@
                 }
                 animationFrame = requestAnimationFrame(frame);
             });
+        }
+
+        function updateTotalTimerDisplay(seconds, isElapsed = false) {
+            if (seconds < 0) seconds = 0;
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            const timeStr = `${m}:${s.toString().padStart(2, '0')}`;
+            
+            const label = isElapsed ? "已練習: " : "剩餘時間: ";
+            if (totalDurationMinutes === 0 && !isElapsed) {
+                 ui.totalTimer.innerHTML = "模式: <span>無限</span>";
+            } else {
+                 ui.totalTimer.innerHTML = `${label}<span>${timeStr}</span>`;
+            }
         }
 
         function drawShape(type) {
@@ -644,7 +792,6 @@
             gain.connect(audioCtx.destination);
 
             if (effect === 'fill' || effect === 'fill-max') {
-                // 吸氣：頻率上升
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(220, t);
                 osc.frequency.linearRampToValueAtTime(440, t + 2);
@@ -653,7 +800,6 @@
                 osc.start(t);
                 osc.stop(t + 2);
             } else if (effect === 'drain') {
-                // 吐氣：頻率下降
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(440, t);
                 osc.frequency.linearRampToValueAtTime(220, t + 2);
@@ -662,7 +808,6 @@
                 osc.start(t);
                 osc.stop(t + 2);
             } else if (effect === 'hold-full') {
-                // 閉氣(滿)：高頻單音
                 osc.type = 'triangle';
                 osc.frequency.setValueAtTime(660, t);
                 gain.gain.setValueAtTime(0.03, t);
@@ -670,7 +815,7 @@
                 osc.start(t);
                 osc.stop(t + 0.5);
             } else if (effect === 'hold-empty') {
-                // 閉氣(空)：低頻方波嘟聲
+                // 低頻方波嘟聲
                 osc.type = 'square';
                 osc.frequency.setValueAtTime(150, t);
                 gain.gain.setValueAtTime(0.05, t);
@@ -678,6 +823,36 @@
                 osc.start(t);
                 osc.stop(t + 0.4);
             }
+        }
+
+        function playCompleteSound() {
+            if(!ui.soundToggle.checked || !audioCtx) return;
+            const t = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            // 鐘聲音效 (Sine, Low freq, Long release)
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(330, t); // E4
+            gain.gain.setValueAtTime(0.1, t);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t + 3);
+            
+            osc.start(t);
+            osc.stop(t + 3);
+            
+            // 和聲
+            const osc2 = audioCtx.createOscillator();
+            const gain2 = audioCtx.createGain();
+            osc2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(493, t); // B4
+            gain2.gain.setValueAtTime(0.05, t);
+            gain2.gain.exponentialRampToValueAtTime(0.0001, t + 3);
+            osc2.start(t);
+            osc2.stop(t + 3);
         }
     </script>
 </body>
