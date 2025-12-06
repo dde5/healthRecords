@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AHO Box Breathing Pro | 進階方塊呼吸</title>
+    <style>
+        :root {
+            --primary-gold: #D4AF37;
+            --gold-dim: #6e5a1b;
+            --bg-color: #000000;
+            --text-gray: #888;
+            --box-size: 280px;
+            --dot-size: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            user-select: none; /* 防止誤選文字影響體驗 */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-gold);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            overflow: hidden; /* 防止動畫超出 */
+        }
+
+        /* 標題區域 */
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            z-index: 10;
+        }
+        
+        h1 {
+            margin: 0;
+            font-weight: 300;
+            letter-spacing: 4px;
+            font-size: 1.2rem;
+            color: #fff;
+        }
+        
+        p.subtitle {
+            color: var(--primary-gold);
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            margin-top: 8px;
+            text-transform: uppercase;
+        }
+
+        /* ==================== 
+           視覺核心區 (Visual Core) 
+           ==================== */
+        .visual-container {
+            position: relative;
+            width: var(--box-size);
+            height: var(--box-size);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+
+        /* 方框背景線條 (暗色) */
+        .box-border {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #222;
+            border-radius: 4px;
+            z-index: 1;
+        }
+
+        /* 跑動的光點 */
+        .moving-dot {
+            position: absolute;
+            width: var(--dot-size);
+            height: var(--dot-size);
+            background-color: #fff;
+            border: 2px solid var(--primary-gold);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--primary-gold), 0 0 30px var(--primary-gold);
+            z-index: 10;
+            opacity: 0; /* 開始前隱藏 */
+            /* 初始位置在左上角 (修正偏移量以置中於線條) */
+            top: calc(var(--dot-size) / -2); 
+            left: calc(var(--dot-size) / -2);
+            will-change: transform; /* 效能優化 */
+        }
+
+        /* 邊框上的倒數數字 */
+        .side-timer {
+            position: absolute;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-gold);
+            text-shadow: 0 0 10px rgba(212,175,55,0.5);
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 5;
+        }
+
+        /* 四個邊的計時器位置 */
+        .timer-top { top: -40px; left: 50%; transform: translateX(-50%); }
+        .timer-right { right: -40px; top: 50%; transform: translateY(-50%); }
+        .timer-bottom { bottom: -40px; left: 50%; transform: translateX(-50%); }
+        .timer-left { left: -40px; top: 50%; transform: translateY(-50%); }
+
+        /* 中央肺部 SVG */
+        .lung-container {
+            width: 160px;
+            height: 160px;
+            z-index: 2;
+            opacity: 0.3; /* 初始未開始狀態較暗 */
+            transition: opacity 0.5s;
+        }
+
+        .lung-svg path {
+            fill: transparent;
+            stroke: var(--primary-gold);
+            stroke-width: 2;
+            transition: all 0.1s linear; /* 動態控制 duration */
+        }
+
+        /* 文字提示區域 */
+        .instruction-overlay {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.9);
+            pointer-events: none;
+        }
+
+        .en-text {
+            font-size: 1rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .cn-text {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-gold);
+        }
+
+        /* ==================== 
+           控制面板區 (Controls) 
+           ==================== */
+        .controls-wrapper {
+            width: 100%;
+            max-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 30;
+        }
+
+        .btn-main {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #D4AF37 0%, #aa8a29 100%);
+            border: none;
+            color: black;
+            font-size: 1.1rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            cursor: pointer;
+            border-radius: 4px;
+            box-shadow: 0 4px 15px rgba(212,175,55,0.3);
+            transition: transform 0.1s, filter 0.2s;
+        }
+
+        .btn-main:active {
+            transform: scale(0.98);
+        }
+
+        .btn-main:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-stop {
+            background: transparent;
+            border: 1px solid #444;
+            color: #888;
+            padding: 10px;
+        }
+
+        .settings-trigger {
+            text-align: center;
+            color: #555;
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        /* 進階設定面板 */
+        .advanced-panel {
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid #333;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 300px;
+            z-index: 100;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+        }
+
+        .advanced-panel.show {
+            display: block;
+        }
+
+        .input-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        .input-group label {
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        .input-group input {
+            width: 60px;
+            background: #000;
+            border: 1px solid var(--primary-gold);
+            color: var(--primary-gold);
+            padding: 5px;
+            text-align: center;
+            border-radius: 4px;
+        }
+
+        .close-settings {
+            width: 100%;
+            margin-top: 10px;
+            background: #333;
+            color: white;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        /* 響應式調整 */
+        @media (max-width: 360px) {
+            :root { --box-size: 240px; }
+            .cn-text { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>AHO BASE</h1>
+        <p class="subtitle">Tactical Box Breathing</p>
+    </header>
+
+    <div class="visual-container">
+        <!-- 邊框背景 -->
+        <div class="box-border"></div>
+        
+        <!-- 四邊的倒數計時器 -->
+        <div class="side-timer timer-top" id="timerTop">4</div>
+        <div class="side-timer timer-right" id="timerRight">4</div>
+        <div class="side-timer timer-bottom" id="timerBottom">4</div>
+        <div class="side-timer timer-left" id="timerLeft">4</div>
+
+        <!-- 跑動的光點 -->
+        <div class="moving-dot" id="dot"></div>
+
+        <!-- 肺部圖形 (SVG) -->
+        <div class="lung-container" id="lungContainer">
+            <svg class="lung-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <!-- 左肺 -->
+                <path id="leftLung" d="M 48 20 Q 25 20 25 50 Q 25 80 45 80 Q 48 80 48 60 Z" />
+                <!-- 右肺 (鏡像) -->
+                <path id="rightLung" d="M 52 20 Q 75 20 75 50 Q 75 80 55 80 Q 52 80 52 60 Z" />
+            </svg>
+        </div>
+
+        <!-- 中央文字 -->
+        <div class="instruction-overlay">
+            <span class="en-text" id="textEn">READY</span>
+            <span class="cn-text" id="textCn">準備</span>
+        </div>
+    </div>
+
+    <!-- 控制區 -->
+    <div class="controls-wrapper">
+        <button class="btn-main" id="startBtn">開始訓練 START</button>
+        <button class="btn-main btn-stop" id="stopBtn" disabled>停止 STOP</button>
+        <div class="settings-trigger" onclick="toggleSettings()">調整秒數與設定</div>
+    </div>
+
+    <!-- 彈出式設定面板 -->
+    <div class="advanced-panel" id="settingsPanel">
+        <h3 style="margin-top:0; color:white; text-align:center;">訓練設定</h3>
+        
+        <div class="input-group">
+            <label>吸氣 (秒)</label>
+            <input type="number" id="inTime" value="4" min="1">
+        </div>
+        <div class="input-group">
+            <label>閉氣-充盈 (秒)</label>
+            <input type="number" id="hold1Time" value="4" min="0">
+        </div>
+        <div class="input-group">
+            <label>吐氣 (秒)</label>
+            <input type="number" id="outTime" value="4" min="1">
+        </div>
+        <div class="input-group">
+            <label>閉氣-排空 (秒)</label>
+            <input type="number" id="hold2Time" value="4" min="0">
+        </div>
+        <div class="input-group">
+            <label>總時長 (分鐘)</label>
+            <input type="number" id="totalDuration" value="5" min="1">
+        </div>
+
+        <button class="close-settings" onclick="toggleSettings()">確認並關閉</button>
+    </div>
+
+    <script>
+        /* 
+           核心邏輯 Core Logic 
+        */
+        let isRunning = false;
+        let globalTimer; // 用於總時間倒數
+        let animationFrameId;
+        
+        // DOM Elements
+        const dot = document.getElementById('dot');
+        const textEn = document.getElementById('textEn');
+        const textCn = document.getElementById('textCn');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const lungContainer = document.getElementById('lungContainer');
+        const leftLung = document.getElementById('leftLung');
+        const rightLung = document.getElementById('rightLung');
+
+        // Timers
+        const sideTimers = [
+            document.getElementById('timerTop'),    // 0: Inhale
+            document.getElementById('timerRight'),  // 1: Hold
+            document.getElementById('timerBottom'), // 2: Exhale
+            document.getElementById('timerLeft')    // 3: Hold
+        ];
+
+        // Configuration
+        let config = {
+            inhale: 4,
+            hold1: 4,
+            exhale: 4,
+            hold2: 4,
+            totalMinutes: 5
+        };
+
+        // UI Helpers
+        function toggleSettings() {
+            document.getElementById('settingsPanel').classList.toggle('show');
+        }
+
+        function updateConfig() {
+            config.inhale = parseFloat(document.getElementById('inTime').value);
+            config.hold1 = parseFloat(document.getElementById('hold1Time').value);
+            config.exhale = parseFloat(document.getElementById('outTime').value);
+            config.hold2 = parseFloat(document.getElementById('hold2Time').value);
+            config.totalMinutes = parseInt(document.getElementById('totalDuration').value);
+        }
+
+        // --- 動畫核心控制 ---
+
+        startBtn.addEventListener('click', async () => {
+            if (isRunning) return;
+            updateConfig();
+            isRunning = true;
+            
+            // UI 狀態更新
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            stopBtn.style.borderColor = "#D4AF37";
+            stopBtn.style.color = "#D4AF37";
+            
+            // 啟動視覺
+            dot.style.opacity = 1;
+            lungContainer.style.opacity = 1;
+
+            // 總時間計時器
+            let remainingSeconds = config.totalMinutes * 60;
+            globalTimer = setInterval(() => {
+                remainingSeconds--;
+                if (remainingSeconds <= 0) stopBreathing(true);
+            }, 1000);
+
+            // 開始循環
+            while (isRunning) {
+                // 1. 吸氣 (上邊)
+                await runPhase(0, 'INHALE', '吸氣', config.inhale, 'grow');
+                if (!isRunning) break;
+
+                // 2. 閉氣 (右邊)
+                await runPhase(1, 'HOLD', '撐住', config.hold1, 'hold-full');
+                if (!isRunning) break;
+
+                // 3. 吐氣 (下邊)
+                await runPhase(2, 'EXHALE', '吐氣', config.exhale, 'shrink');
+                if (!isRunning) break;
+
+                // 4. 閉氣 (左邊)
+                await runPhase(3, 'HOLD', '撐住', config.hold2, 'hold-empty');
+            }
+        });
+
+        stopBtn.addEventListener('click', () => stopBreathing(false));
+
+        function stopBreathing(finished) {
+            isRunning = false;
+            clearInterval(globalTimer);
+            cancelAnimationFrame(animationFrameId);
+
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            stopBtn.style.borderColor = "#444";
+            stopBtn.style.color = "#888";
+
+            // 重置視覺
+            dot.style.opacity = 0;
+            dot.style.transition = 'none';
+            dot.style.transform = 'translate(0,0)'; // 回到原點
+            
+            resetLungVisuals();
+            hideAllTimers();
+
+            if (finished) {
+                textEn.innerText = "DONE";
+                textCn.innerText = "完成";
+            } else {
+                textEn.innerText = "READY";
+                textCn.innerText = "準備";
+                lungContainer.style.opacity = 0.3;
+            }
+        }
+
+        // --- 執行單一呼吸階段 ---
+        function runPhase(sideIndex, enText, cnText, durationSec, type) {
+            return new Promise(resolve => {
+                // 1. 設定文字
+                textEn.innerText = enText;
+                textCn.innerText = cnText;
+
+                // 2. 設定肺部動畫
+                applyLungAnimation(type, durationSec);
+
+                // 3. 設定光點移動
+                animateDot(sideIndex, durationSec);
+
+                // 4. 設定倒數計時
+                let timeLeft = durationSec;
+                const timerEl = sideTimers[sideIndex];
+                
+                // 隱藏所有計時器，顯示當前邊的計時器
+                hideAllTimers();
+                timerEl.style.opacity = 1;
+                timerEl.innerText = timeLeft;
+
+                // 倒數計時邏輯 (使用 setInterval 處理每秒更新)
+                const phaseTimer = setInterval(() => {
+                    timeLeft--;
+                    if (timeLeft > 0) {
+                        timerEl.innerText = timeLeft;
+                    }
+                }, 1000);
+
+                // 等待階段結束
+                setTimeout(() => {
+                    clearInterval(phaseTimer);
+                    resolve();
+                }, durationSec * 1000);
+            });
+        }
+
+        // --- 光點軌跡控制 (精確版) ---
+        function animateDot(side, durationSec) {
+            // box size = 280px. 
+            // 為了方便計算，我們使用 transform translate (X, Y)
+            // 0,0 是左上角
+            
+            const size = 280; 
+            const durationMs = durationSec * 1000;
+            
+            dot.style.transition = `transform ${durationMs}ms linear`;
+
+            // 在移動前，先瞬間設定到起點 (重置 transition)
+            dot.style.transition = 'none';
+            
+            let startX, startY, endX, endY;
+
+            if (side === 0) { // Top: Left -> Right
+                startX = 0; startY = 0;
+                endX = size; endY = 0;
+            } else if (side === 1) { // Right: Top -> Bottom
+                startX = size; startY = 0;
+                endX = size; endY = size;
+            } else if (side === 2) { // Bottom: Right -> Left
+                startX = size; startY = size;
+                endX = 0; endY = size;
+            } else if (side === 3) { // Left: Bottom -> Top
+                startX = 0; startY = size;
+                endX = 0; endY = 0;
+            }
+
+            // 設定起點
+            dot.style.transform = `translate(${startX}px, ${startY}px)`;
+
+            // 強制瀏覽器重繪 (Reflow) 以確保 transition 生效
+            dot.offsetHeight; 
+
+            // 設定終點與動畫時間
+            dot.style.transition = `transform ${durationMs}ms linear`;
+            dot.style.transform = `translate(${endX}px, ${endY}px)`;
+        }
+
+        // --- 肺部視覺變形控制 ---
+        function applyLungAnimation(type, durationSec) {
+            const durationStyle = `${durationSec}s linear`;
+            leftLung.style.transition = `all ${durationStyle}`;
+            rightLung.style.transition = `all ${durationStyle}`;
+            
+            // 顏色與變形定義
+            const emptyFill = "transparent";
+            const fullFill = "rgba(212,175,55, 0.8)";
+            const strokeColor = "#D4AF37";
+            const strokeWidth = "2";
+
+            // 為了模擬呼吸，我們使用 transform scale，但要調整 origin 確保是從中心縮放
+            leftLung.style.transformOrigin = "center";
+            rightLung.style.transformOrigin = "center";
+
+            if (type === 'grow') {
+                // 吸氣：變大、填滿顏色
+                leftLung.style.fill = fullFill;
+                rightLung.style.fill = fullFill;
+                leftLung.style.transform = "scale(1.15)";
+                rightLung.style.transform = "scale(1.15)";
+                // 添加發光濾鏡效果
+                lungContainer.style.filter = "drop-shadow(0 0 10px rgba(212,175,55,0.6))";
+            } else if (type === 'shrink') {
+                // 吐氣：變回原狀、顏色變空
+                leftLung.style.fill = emptyFill;
+                rightLung.style.fill = emptyFill;
+                leftLung.style.transform = "scale(1)";
+                rightLung.style.transform = "scale(1)";
+                lungContainer.style.filter = "none";
+            } else if (type === 'hold-full') {
+                // 閉氣(滿)：保持狀態
+                // 不需要做動作，CSS 會維持上一個狀態
+            } else if (type === 'hold-empty') {
+                // 閉氣(空)：保持狀態
+            }
+        }
+
+        function resetLungVisuals() {
+            leftLung.style.transition = 'none';
+            rightLung.style.transition = 'none';
+            leftLung.style.fill = "transparent";
+            rightLung.style.fill = "transparent";
+            leftLung.style.transform = "scale(1)";
+            rightLung.style.transform = "scale(1)";
+            lungContainer.style.filter = "none";
+        }
+
+        function hideAllTimers() {
+            sideTimers.forEach(t => t.style.opacity = 0);
+        }
+
+    </script>
+</body>
+</html>
