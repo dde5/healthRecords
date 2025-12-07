@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JJ Breath Ultimate | 專業呼吸訓練</title>
+    <style>
+        :root {
+            --primary-gold: #D4AF37;
+            --bg-color: #000000;
+            --panel-bg: #111111;
+            --border-color: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* =========================================
+           佈局系統 (RWD)
+           ========================================= */
+        
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 視覺區 (Visual) */
+        .visual-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 10px;
+            overflow: hidden;
+        }
+
+        /* 控制區 (Controls) - 直向時在下方 */
+        .control-panel {
+            flex-shrink: 0;
+            width: 100%;
+            height: 45%; /* 直向時高度佔比 */
+            background: var(--panel-bg);
+            border-top: 1px solid var(--border-color);
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        /* 橫向模式 (Landscape) */
+        @media (orientation: landscape) {
+            .app-container {
+                flex-direction: row;
+            }
+
+            .visual-area {
+                flex: 6; /* 左側佔 60% */
+                height: 100%;
+                border-right: 1px solid var(--border-color);
+                background: radial-gradient(circle at center, #1a1a1a 0%, #000 80%);
+            }
+
+            .control-panel {
+                flex: 4; /* 右側佔 40% */
+                width: auto;
+                height: 100%;
+                border-top: none;
+                border-left: 1px solid var(--border-color);
+            }
+        }
+
+        /* =========================================
+           元件樣式
+           ========================================= */
+
+        h1 {
+            color: var(--primary-gold);
+            font-weight: 300;
+            letter-spacing: 4px;
+            margin: 0 0 10px 0;
+            font-size: 1.5rem;
+            text-align: center;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            background: #222;
+            border: 1px solid #444;
+            color: var(--primary-gold);
+            font-size: 1rem;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 5px;
+        }
+
+        /* 時間按鈕 */
+        .duration-control {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .time-btn {
+            flex: 1;
+            background: #222;
+            border: 1px solid #444;
+            color: #888;
+            padding: 8px 0;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .time-btn.active {
+            background: var(--primary-gold);
+            color: #000;
+            border-color: var(--primary-gold);
+            font-weight: bold;
+        }
+
+        /* 按鈕組 */
+        .btn-group { display: flex; gap: 10px; margin-top: 5px; }
+        .btn {
+            flex: 1; padding: 15px; border: none; border-radius: 6px;
+            font-size: 1rem; font-weight: bold; cursor: pointer;
+        }
+        .btn-start { background: linear-gradient(135deg, #D4AF37 0%, #997b28 100%); color: #000; }
+        .btn-stop { background: #333; color: #888; border: 1px solid #555; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .options-bar {
+            display: flex; justify-content: center; gap: 20px;
+            color: #aaa; font-size: 0.9rem; margin-bottom: 5px;
+        }
+        .toggle-option { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+        .toggle-option input { accent-color: var(--primary-gold); width: 16px; height: 16px; }
+
+        /* 說明卡片 (完整內容) */
+        .info-card {
+            background: #151515;
+            border-left: 3px solid var(--primary-gold);
+            padding: 15px;
+            border-radius: 0 6px 6px 0;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #ccc;
+            white-space: pre-line; /* 保留換行 */
+        }
+        .info-card h3 { color: var(--primary-gold); margin: 0 0 10px 0; font-size: 1.1rem; border-bottom: 1px solid #333; padding-bottom: 5px; }
+
+        /* 自訂輸入 */
+        .custom-inputs {
+            display: none; grid-template-columns: repeat(4, 1fr); gap: 5px;
+            background: #222; padding: 10px; border-radius: 8px; margin-bottom: 10px;
+        }
+        .custom-inputs.show { display: grid; }
+        .input-group label { font-size: 0.7rem; color: #aaa; display: block; text-align: center; }
+        .input-group input { width: 100%; background: #000; border: 1px solid #555; color: var(--primary-gold); text-align: center; padding: 5px; }
+
+        /* =========================================
+           MASTER SVG 樣式
+           ========================================= */
+        
+        .master-svg {
+            width: 100%;
+            height: 100%;
+            max-width: 90vh; /* 稍微放大 */
+            max-height: 90vh;
+        }
+
+        .track-path {
+            fill: none;
+            stroke: #333;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: stroke 0.3s;
+        }
+
+        .dot-circle {
+            fill: #fff;
+            stroke: var(--primary-gold);
+            stroke-width: 2;
+            filter: drop-shadow(0 0 5px var(--primary-gold));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .lung-group {
+            opacity: 0.4;
+            transition: opacity 0.5s;
+        }
+        
+        .lung-shape {
+            stroke: #444;
+            stroke-width: 1.5;
+            fill: url(#fluidGradient);
+        }
+        .lung-outline {
+            fill: none;
+            stroke: var(--primary-gold);
+            stroke-width: 1.5;
+        }
+
+        /* SVG 文字樣式 (解決擋住問題的核心) */
+        .svg-text {
+            font-family: "Helvetica Neue", Arial, sans-serif;
+            text-anchor: middle;
+            dominant-baseline: middle;
+            fill: #fff;
+            pointer-events: none;
+            /* 關鍵：文字描邊，確保在金色背景上清晰可見 */
+            paint-order: stroke;
+            stroke: rgba(0,0,0,0.9);
+            stroke-width: 4px;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        
+        .text-timer { 
+            font-size: 28px; 
+            font-weight: 700; 
+        }
+        
+        .text-action { 
+            font-size: 12px; 
+            font-weight: 900; 
+            letter-spacing: 3px; 
+            fill: var(--primary-gold); /* 內部金色 */
+            text-transform: uppercase;
+        }
+
+        .total-timer {
+            position: absolute;
+            bottom: 10px;
+            font-size: 1rem;
+            color: #666;
+            font-family: monospace;
+        }
+        .total-timer span { color: var(--primary-gold); }
+
+        #wakeLockVideo { position: absolute; width: 1px; height: 1px; opacity: 0.001; pointer-events: none; }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- 視覺區 -->
+        <div class="visual-area">
+            <svg class="master-svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <linearGradient id="fluidGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop id="stopTop" offset="100%" stop-color="transparent" />
+                        <stop id="stopBottom" offset="100%" stop-color="#D4AF37" />
+                    </linearGradient>
+                </defs>
+
+                <!-- 1. 背景軌跡 (最底層) -->
+                <path id="trackPath" class="track-path" d="" />
+
+                <!-- 2. 肺部圖形 (中間層) - 放大版 -->
+                <!-- 
+                   原本 200x200 path. 
+                   Scale 0.35 => 70x70 size.
+                   Center offset = (100 - 70)/2 = 15.
+                -->
+                <g class="lung-group" id="lungGroup" transform="translate(15, 15) scale(0.35)">
+                     <path id="lungPath" class="lung-shape" d="M 95,40 C 60,40 35,70 35,110 C 35,150 65,170 90,165 C 95,164 95,140 95,140 Z M 105,40 C 140,40 165,70 165,110 C 165,150 135,170 110,165 C 105,164 105,140 105,140 Z" />
+                     <path class="lung-outline" d="M 95,40 C 60,40 35,70 35,110 C 35,150 65,170 90,165 C 95,164 95,140 95,140 Z M 105,40 C 140,40 165,70 165,110 C 165,150 135,170 110,165 C 105,164 105,140 105,140 Z" />
+                     <path stroke="#D4AF37" stroke-width="2" fill="none" d="M 95,40 L 95,10 L 105,10 L 105,40"/>
+                </g>
+
+                <!-- 3. 呼吸光點 -->
+                <circle id="dot" class="dot-circle" r="2.5" cx="0" cy="0" />
+
+                <!-- 4. 文字 (最上層) - 確保 DOM 順序在最後 -->
+                <text id="timerText" class="svg-text text-timer" x="50" y="52"></text>
+                <text id="actionText" class="svg-text text-action" x="50" y="65">READY</text>
+            </svg>
+
+            <div class="total-timer" id="totalTimerDisplay">
+                剩餘時間: <span>5:00</span>
+            </div>
+        </div>
+
+        <!-- 控制區 -->
+        <div class="control-panel">
+            <h1>JJ BREATH</h1>
+
+            <select id="breathSelector">
+                <option value="box">方塊呼吸法 (Box Breathing)</option>
+                <option value="custom">⚙️ 自訂模式 (Custom)</option>
+                <option value="478">4-7-8 呼吸法 (倒三角)</option>
+                <option value="diaphragm">腹式呼吸法 (正三角)</option>
+                <option value="cyclic">循環歎息呼吸 (圓形)</option>
+                <option value="humming">蜂鳴呼吸法 (圓形)</option>
+            </select>
+
+            <div class="duration-control">
+                <button class="time-btn" data-min="1">1分</button>
+                <button class="time-btn" data-min="3">3分</button>
+                <button class="time-btn active" data-min="5">5分</button>
+                <button class="time-btn" data-min="10">10分</button>
+                <button class="time-btn" data-min="0">無限</button>
+            </div>
+
+            <div class="custom-inputs" id="customPanel">
+                <div class="input-group"><label>吸氣</label><input type="number" id="cIn" value="4"></div>
+                <div class="input-group"><label>閉氣</label><input type="number" id="cH1" value="4"></div>
+                <div class="input-group"><label>吐氣</label><input type="number" id="cEx" value="4"></div>
+                <div class="input-group"><label>閉氣</label><input type="number" id="cH2" value="4"></div>
+            </div>
+
+            <div class="options-bar">
+                <label class="toggle-option"><input type="checkbox" id="voiceToggle" checked> 語音</label>
+                <label class="toggle-option"><input type="checkbox" id="soundToggle" checked> 音效</label>
+            </div>
+
+            <div class="btn-group">
+                <button id="startBtn" class="btn btn-start">開始 START</button>
+                <button id="stopBtn" class="btn btn-stop" disabled>停止 STOP</button>
+            </div>
+
+            <div class="info-card">
+                <h3 id="infoTitle">方塊呼吸法</h3>
+                <div id="infoContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <video id="wakeLockVideo" playsinline muted loop>
+        <source src="data:video/mp4;base64,AAAAHGZ0eXBNNEVAAAAAAAAAAAEAAACgYW1vbQAAAAAAAAAAAAAAAAAAAABtb292AAAAbG12aGQAAAAA6a2gAAAAAAHAAACaAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKgbWRhdAAAAAAAAAAAAAAA" type="video/mp4">
+    </video>
+
+    <script>
+        const presets = {
+            box: {
+                title: "方塊呼吸法 (Box Breathing)",
+                shapePath: "M 10,90 L 10,10 L 90,10 L 90,90 L 10,90", 
+                cycle: [4, 4, 4, 4],
+                actions: ["吸氣", "撐住", "吐氣", "撐住"],
+                effects: ["fill", "hold-full", "drain", "hold-empty"],
+                desc: `💡緊張、焦慮、壓力大時，你是否曾感到心跳加速、腦袋空白？在這樣的時刻，我們其實可以靠「呼吸」，重啟內在的穩定力。
+
+💡美國海軍陸戰隊上戰場前，都會進行一項呼吸訓練—「方塊呼吸法」（Box Breathing）。這是一種結合吸氣、閉氣、吐氣的簡單練習，每個階段都是4秒，像一個穩定的正方形節奏，因此稱作「方塊呼吸」。
+
+練習方式如下（正方形循環）：
+1️⃣ 吸氣 4 秒：點由下往上，能量充滿。
+2️⃣ 撐住 4 秒：點向右橫移，氣息保持。
+3️⃣ 吐氣 4 秒：點由上往下，壓力釋放。
+4️⃣ 撐住 4 秒：點向左橫移，放空歸零。
+
+再從第1步開始循環~ 這樣的呼吸，不只是放鬆，更能活化副交感神經，幫助你在焦慮中找回穩定。`
+            },
+            custom: {
+                title: "自訂模式 (Custom Mode)",
+                shapePath: "M 10,90 L 10,10 L 90,10 L 90,90 L 10,90",
+                cycle: [4, 4, 4, 4],
+                actions: ["吸氣", "撐住", "吐氣", "撐住"],
+                effects: ["fill", "hold-full", "drain", "hold-empty"],
+                desc: `💡進階使用者的自由設定模式。
+
+您可以根據自己的肺活量與訓練需求，在上方輸入框調整：
+- 吸氣時間
+- 閉氣（充盈）時間
+- 吐氣時間
+- 閉氣（排空）時間
+
+點擊「開始」後將依照您的設定進行循環。`
+            },
+            "478": {
+                title: "4-7-8 呼吸法",
+                shapePath: "M 50,90 L 10,10 L 90,10 L 50,90", 
+                cycle: [4, 7, 8],
+                actions: ["吸氣", "閉氣", "吐氣"],
+                effects: ["fill", "hold-full", "drain"],
+                desc: `💡當壓力來襲時，你是否想快速平復情緒？4-7-8呼吸法是由Andrew Weil博士開發的技巧，源自瑜伽普拉納亞瑪（pranayama），研究顯示它能有效降低焦慮水平、改善睡眠，並調節神經系統。
+
+💡臨床研究發現，這種呼吸法在手術後患者中能顯著減少焦慮。從氣脈角度，它強調延長吐氣，有助於釋放積壓的能量。
+
+練習方式如下（倒三角形）：
+1️⃣ 吸氣 4 秒：點從底部往上，吸入能量。
+2️⃣ 閉氣 7 秒：點橫向移動，充分交換氣體。
+3️⃣ 吐氣 8 秒：點向下匯聚，徹底放鬆（發出嘶聲）。
+建議適合考試前或睡前使用。`
+            },
+            diaphragm: {
+                title: "腹式呼吸法 (Diaphragmatic)",
+                shapePath: "M 10,90 L 50,10 L 90,90 L 10,90",
+                cycle: [5, 5, 2],
+                actions: ["吸氣", "吐氣", "放鬆"],
+                effects: ["fill", "drain", "hold-empty"],
+                desc: `💡感覺呼吸淺短、胸悶時，試試腹式呼吸吧！這是基礎的深呼吸技巧，專注於使用橫膈膜，讓呼吸更深層，研究證實它能降低生理壓力指標，如皮質醇水平。
+
+💡多項研究顯示，腹式呼吸能有效減輕焦慮和負面情緒。它激活副交感神經，幫助疏通胸腹能量，促進內在穩定。
+
+練習方式如下（正三角形）：
+1️⃣ 吸氣 5 秒：腹部鼓起，點往上走。
+2️⃣ 吐氣 5 秒：腹部收縮，點往下走。
+3️⃣ 放鬆 2 秒：點橫向回歸，準備下一次循環。
+適合初學者或日常減壓。`
+            },
+            cyclic: {
+                title: "循環歎息呼吸 (Cyclic Sighing)",
+                shapePath: "M 50,90 A 40,40 0 0 1 50,10 A 40,40 0 0 1 50,90", 
+                cycle: [3, 1, 6],
+                actions: ["吸氣", "再吸", "歎氣"],
+                effects: ["fill", "fill-max", "drain"],
+                desc: `💡想在短時間內改善心情？循環歎息呼吸是由斯坦福大學研究開發的技巧，強調延長吐氣，研究顯示它比其他呼吸法更有效提升心情並降低生理喚醒。
+
+💡一項控制試驗發現，每天5分鐘練習能顯著減輕焦慮並改善情緒，甚至優於正念冥想。它模擬自然歎息，幫助釋放壓力能量。
+
+練習方式如下：
+1️⃣ 吸氣 3 秒：鼻子深吸氣，擴張肺部。
+2️⃣ 再吸 1 秒：短吸一口，補滿肺活量。
+3️⃣ 歎氣 6 秒：嘴巴長長吐氣，釋放所有壓力。`
+            },
+            humming: {
+                title: "蜂鳴呼吸法 (Bhramari)",
+                shapePath: "M 50,90 A 40,40 0 0 1 50,10 A 40,40 0 0 1 50,90",
+                cycle: [4, 8],
+                actions: ["吸氣", "蜂鳴"],
+                effects: ["fill", "drain"],
+                desc: `💡腦中嗡嗡亂想時，來點振動療法！蜂鳴呼吸法源自瑜伽，透過哼鳴聲產生振動，研究顯示它能降低心率、減輕挫折感和焦慮。
+
+💡系統回顧發現，這種練習能改善高血壓、焦慮和壓力相關症狀。振動有助於刺激腦部，疏通能量堵塞，帶來寧靜。
+
+練習方式如下：
+1️⃣ 吸氣 4 秒：點往上走。
+2️⃣ 蜂鳴 8 秒：閉嘴發出「嗯—」聲吐氣，點往下走。
+每天早晚練習，效果更佳。`
+            }
+        };
+
+        const ui = {
+            select: document.getElementById('breathSelector'),
+            customPanel: document.getElementById('customPanel'),
+            cInputs: [document.getElementById('cIn'), document.getElementById('cH1'), document.getElementById('cEx'), document.getElementById('cH2')],
+            title: document.getElementById('infoTitle'),
+            content: document.getElementById('infoContent'),
+            track: document.getElementById('trackPath'),
+            dot: document.getElementById('dot'),
+            timer: document.getElementById('timerText'),
+            action: document.getElementById('actionText'),
+            start: document.getElementById('startBtn'),
+            stop: document.getElementById('stopBtn'),
+            lungGroup: document.getElementById('lungGroup'),
+            stopTop: document.getElementById('stopTop'),
+            stopBottom: document.getElementById('stopBottom'),
+            video: document.getElementById('wakeLockVideo'),
+            voiceToggle: document.getElementById('voiceToggle'),
+            soundToggle: document.getElementById('soundToggle'),
+            totalTimer: document.getElementById('totalTimerDisplay'),
+            timeBtns: document.querySelectorAll('.time-btn')
+        };
+
+        let isRunning = false;
+        let animationFrame = null;
+        let audioCtx = null;
+        let currentKey = 'box';
+        let wakeLock = null;
+        let totalDurationMinutes = 5; 
+        let sessionStartTime = 0;
+
+        // 初始化
+        loadPreset('box');
+        updateTotalTimerDisplay(totalDurationMinutes * 60);
+
+        ui.timeBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                if(isRunning) return;
+                ui.timeBtns.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                totalDurationMinutes = parseInt(e.target.dataset.min);
+                updateTotalTimerDisplay(totalDurationMinutes * 60);
+            });
+        });
+
+        ui.select.addEventListener('change', (e) => {
+            if(isRunning) stop();
+            loadPreset(e.target.value);
+        });
+
+        ui.start.addEventListener('click', () => {
+            ui.video.play().catch(()=>{});
+            requestWakeLock();
+            start();
+        });
+
+        ui.stop.addEventListener('click', () => stop(false));
+
+        document.addEventListener("visibilitychange", async () => {
+            if (document.visibilityState === "visible" && isRunning) {
+                requestWakeLock();
+                ui.video.play().catch(()=>{});
+            }
+        });
+
+        function loadPreset(key) {
+            currentKey = key;
+            const data = presets[key];
+
+            ui.customPanel.classList.toggle('show', key === 'custom');
+            ui.title.innerText = data.title;
+            ui.content.innerText = data.desc;
+            
+            ui.track.setAttribute('d', data.shapePath);
+            const pt = ui.track.getPointAtLength(0);
+            updateDot(pt);
+            resetState();
+        }
+
+        function getCycle() {
+            let data = JSON.parse(JSON.stringify(presets[currentKey]));
+            if (currentKey === 'custom') {
+                data.cycle = ui.cInputs.map(i => parseFloat(i.value) || 4);
+            }
+            return data;
+        }
+
+        async function start() {
+            if(isRunning) return;
+            isRunning = true;
+            sessionStartTime = performance.now();
+
+            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+
+            ui.start.disabled = true;
+            ui.stop.disabled = false;
+            ui.select.disabled = true;
+            ui.customPanel.style.pointerEvents = 'none';
+            ui.timeBtns.forEach(b => b.style.pointerEvents = 'none');
+            
+            ui.dot.style.opacity = 1;
+            ui.lungGroup.style.opacity = 1;
+
+            runLoop();
+        }
+
+        function stop(finished = false) {
+            isRunning = false;
+            cancelAnimationFrame(animationFrame);
+            window.speechSynthesis.cancel();
+            
+            ui.video.pause();
+            if(wakeLock) wakeLock.release().then(()=> wakeLock=null);
+
+            ui.start.disabled = false;
+            ui.stop.disabled = true;
+            ui.select.disabled = false;
+            ui.customPanel.style.pointerEvents = 'auto';
+            ui.timeBtns.forEach(b => b.style.pointerEvents = 'auto');
+
+            resetState();
+
+            if (finished) {
+                ui.action.textContent = "COMPLETE";
+                ui.timer.textContent = "";
+                playCompleteSound();
+            }
+        }
+
+        function resetState() {
+            ui.dot.style.opacity = 0;
+            ui.lungGroup.style.opacity = 0.3;
+            ui.timer.textContent = "";
+            ui.action.textContent = "READY";
+            setFluidLevel(100); 
+            updateShapeColor('default');
+            
+            const pt = ui.track.getPointAtLength(0);
+            updateDot(pt);
+            
+            if(totalDurationMinutes === 0) {
+                 updateTotalTimerDisplay(0, true);
+            } else {
+                 updateTotalTimerDisplay(totalDurationMinutes * 60);
+            }
+        }
+
+        async function requestWakeLock() {
+            if ('wakeLock' in navigator) {
+                try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
+            }
+        }
+
+        async function runLoop() {
+            const data = getCycle();
+            let phaseIdx = 0;
+
+            while(isRunning) {
+                const duration = data.cycle[phaseIdx];
+                const action = data.actions[phaseIdx];
+                const effect = data.effects[phaseIdx];
+
+                await runPhase(duration, action, effect, phaseIdx, data);
+                
+                if (checkTotalTimeUp()) {
+                    stop(true);
+                    break;
+                }
+                phaseIdx = (phaseIdx + 1) % data.cycle.length;
+            }
+        }
+
+        function checkTotalTimeUp() {
+            if (totalDurationMinutes === 0) return false;
+            const elapsed = (performance.now() - sessionStartTime) / 1000;
+            return elapsed >= (totalDurationMinutes * 60);
+        }
+
+        function runPhase(duration, action, effect, idx, data) {
+            return new Promise(resolve => {
+                const startTime = performance.now();
+                const totalLen = ui.track.getTotalLength();
+                const numSegments = data.cycle.length;
+                let startRatio = idx / numSegments;
+                let endRatio = (idx + 1) / numSegments;
+                const segmentLen = (endRatio - startRatio) * totalLen;
+                const baseDist = startRatio * totalLen;
+
+                ui.action.textContent = action; 
+                updateShapeColor(effect);
+
+                let hasSpokenStart = false;
+                let spokenCount = new Set();
+
+                function frame(now) {
+                    if(!isRunning) { resolve(); return; }
+
+                    const sessionElapsed = (now - sessionStartTime) / 1000;
+                    if (totalDurationMinutes > 0) {
+                        const totalRemaining = (totalDurationMinutes * 60) - sessionElapsed;
+                        updateTotalTimerDisplay(totalRemaining);
+                        if (totalRemaining <= 0) { resolve(); return; }
+                    } else {
+                        updateTotalTimerDisplay(sessionElapsed, true);
+                    }
+
+                    const elapsed = (now - startTime) / 1000;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const remaining = Math.ceil(duration - elapsed);
+
+                    if(remaining >= 0) ui.timer.textContent = remaining;
+
+                    if (!hasSpokenStart) {
+                        hasSpokenStart = true;
+                        speak(action);
+                        playSound(effect);
+                    }
+
+                    if (remaining <= 3 && remaining >= 1 && !spokenCount.has(remaining)) {
+                        spokenCount.add(remaining);
+                        speak(remaining.toString());
+                    }
+
+                    const currentDist = baseDist + (segmentLen * progress);
+                    const pt = ui.track.getPointAtLength(currentDist % totalLen);
+                    updateDot(pt);
+                    updateLung(effect, progress);
+
+                    if(progress < 1) {
+                        animationFrame = requestAnimationFrame(frame);
+                    } else {
+                        resolve();
+                    }
+                }
+                animationFrame = requestAnimationFrame(frame);
+            });
+        }
+
+        function updateTotalTimerDisplay(seconds, isElapsed = false) {
+            if (seconds < 0) seconds = 0;
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            const timeStr = `${m}:${s.toString().padStart(2, '0')}`;
+            const label = isElapsed ? "已練習: " : "剩餘時間: ";
+            ui.totalTimer.innerHTML = (totalDurationMinutes === 0 && !isElapsed) 
+                ? "模式: <span>無限</span>" 
+                : `${label}<span>${timeStr}</span>`;
+        }
+
+        function updateDot(pt) {
+            ui.dot.setAttribute('cx', pt.x);
+            ui.dot.setAttribute('cy', pt.y);
+        }
+
+        function updateLung(effect, progress) {
+            let level = 100;
+            if(effect === 'fill') level = 100 - (progress * 100);
+            else if(effect === 'drain') level = progress * 100;
+            else if(effect === 'hold-full' || effect === 'fill-max') level = 0;
+            else if(effect === 'hold-empty') level = 100;
+            setFluidLevel(level);
+        }
+
+        function setFluidLevel(pct) {
+            ui.stopTop.setAttribute('offset', pct + '%');
+            ui.stopBottom.setAttribute('offset', pct + '%');
+        }
+
+        function updateShapeColor(effect) {
+            const path = ui.track;
+            path.style.filter = "none";
+            
+            if (effect === 'fill' || effect === 'fill-max') {
+                path.style.stroke = "#D4AF37";
+                path.style.filter = "drop-shadow(0 0 5px #D4AF37)";
+            } else if (effect === 'hold-full') {
+                path.style.stroke = "#FFFFFF";
+                path.style.filter = "drop-shadow(0 0 10px #FFFFFF)";
+            } else if (effect === 'drain') {
+                path.style.stroke = "#666";
+            } else if (effect === 'hold-empty') {
+                path.style.stroke = "#333";
+            } else {
+                path.style.stroke = "#333";
+            }
+        }
+
+        function speak(text) {
+            if(!ui.voiceToggle.checked) return;
+            window.speechSynthesis.cancel(); 
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'zh-TW';
+            u.rate = 1.3; 
+            window.speechSynthesis.speak(u);
+        }
+
+        function playSound(effect) {
+            if(!ui.soundToggle.checked || !audioCtx) return;
+            const t = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (effect === 'fill' || effect === 'fill-max') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(220, t);
+                osc.frequency.linearRampToValueAtTime(440, t + 2);
+                gain.gain.setValueAtTime(0.05, t);
+                gain.gain.linearRampToValueAtTime(0, t + 2);
+                osc.start(t);
+                osc.stop(t + 2);
+            } else if (effect === 'drain') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, t);
+                osc.frequency.linearRampToValueAtTime(220, t + 2);
+                gain.gain.setValueAtTime(0.05, t);
+                gain.gain.linearRampToValueAtTime(0, t + 2);
+                osc.start(t);
+                osc.stop(t + 2);
+            } else if (effect === 'hold-full') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(660, t);
+                gain.gain.setValueAtTime(0.03, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+                osc.start(t);
+                osc.stop(t + 0.5);
+            } else if (effect === 'hold-empty') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, t);
+                gain.gain.setValueAtTime(0.05, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+                osc.start(t);
+                osc.stop(t + 0.4);
+            }
+        }
+
+        function playCompleteSound() {
+            if(!ui.soundToggle.checked || !audioCtx) return;
+            const t = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(330, t);
+            gain.gain.setValueAtTime(0.1, t);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t + 3);
+            osc.start(t);
+            osc.stop(t + 3);
+        }
+    </script>
+</body>
+</html>
